@@ -1,4 +1,5 @@
-#include "html_analyzer.hpp"
+#include <htmlanalyzer/html_analyzer.hpp>
+
 #include <iostream>
 
 namespace html_analyzer {
@@ -7,6 +8,10 @@ HTMLAnalyzer::HTMLAnalyzer(const std::string &content) :
     content_{content}, 
     document_{gumbo_parse(content.c_str())}
 { } 
+
+bool HTMLAnalyzer::is_valid() const noexcept {
+    return true;
+}
 
 [[nodiscard]] std::string HTMLAnalyzer::crop_content(const std::initializer_list<std::string> &forbidden_tags) {
     auto black_list = get_tags_types(forbidden_tags);

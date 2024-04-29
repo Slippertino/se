@@ -1,4 +1,4 @@
-#include "automatons/automaton.hpp"
+#include <htmlanalyzer/automatons/automaton.hpp>
 
 namespace html_analyzer {
 

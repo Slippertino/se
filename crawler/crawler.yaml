@@ -1,0 +1,42 @@
+crawler:
+  name: IRSCrawler
+  services:
+    distributor:
+      thread_pool: 3
+      domain_group_size: 3
+      max_pages_batch_size: 3
+      interval_ms: 5000
+    queue: 
+      thread_pool: 2
+      domain_fetch_delay_ms: 30
+      max_size: 100000
+    processor:
+      thread_pool: 5
+      max_size: 200
+      max_resource_size: 10485760
+      fetch_resource_timeout_ms: 5000
+  db:
+    connection_string: postgresql://admin:1234@localhost:5432/crawling
+  bus:
+    thread_pool: 2
+    connection_string: amqp://guest:guest@localhost:5672/
+    messages:
+      crawled:
+        enabled: false
+        exchange: se
+        routing_key: pages_to_index
+        max_batch_size: 10
+        max_batch_volume: 10485760
+        compression_type: lzma
+      logging:
+        enabled: false
+        exchange: se
+        routing_key: log
+        max_batch_size: 10
+        max_batch_volume: 10240
+        compression_type: lzma
+  logging:
+    lvl: info
+    formats:
+      console: "%(time) [%(thread_id)] %(log_level) %(custom_tags) - %(message)"
+      bus: "[%(thread_id)]\t%(message)"

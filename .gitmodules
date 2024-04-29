@@ -1,0 +1,15 @@
+[submodule "crawler/third-party/robotstxt"]
+	path = crawler/third-party/robotstxt
+	url = https://github.com/google/robotstxt
+[submodule "crawler/third-party/certify"]
+	path = crawler/third-party/certify
+	url = https://github.com/djarek/certify
+[submodule "crawler/third-party/yaml-cpp"]
+	path = crawler/third-party/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp
+[submodule "crawler/third-party/libcds"]
+	path = crawler/third-party/libcds
+	url = https://github.com/khizmax/libcds
+[submodule "crawler/third-party/libpqxx"]
+	path = crawler/third-party/libpqxx
+	url = https://github.com/jtv/libpqxx
