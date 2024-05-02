@@ -5,17 +5,19 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/high_resolution_timer.hpp>
 #include <crawler/core/resource.hpp>
-#include <crawler/utils/service.hpp>
+#include <seutils/service.hpp>
 #include <crawler/core/resource_distributor.hpp>
 #include <crawler/core/resources_repository.hpp>
 #include <crawler/bus/external_bus.hpp>
 #include <crawler/db/data_provider.hpp>
 #include <crawler/handlers/resource_handler.hpp>
 
+namespace se {
+
 namespace crawler {
 
 class ResourceProcessor final : 
-    public utils::Service, 
+    public se::utils::Service, 
     public std::enable_shared_from_this<ResourceProcessor> {
         
 private: 
@@ -45,7 +47,7 @@ public:
     void handle_resource_received(const ResourcePtr& resource, bool success = true);
     void handle_new_resources(std::vector<ResourcePtr> resources);
     void commit_resource(const IndexingResource& resource);
-    void send_to_index(const utils::CrawledResourceData& data);
+    void send_to_index(const se::utils::CrawledResourceData& data);
     void on_handling_end(bool success = true);
 
 protected:
@@ -63,3 +65,5 @@ private:
 };
 
 } // namespace crawler
+
+} // namespace se

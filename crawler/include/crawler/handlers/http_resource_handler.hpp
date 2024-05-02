@@ -5,14 +5,16 @@
 #include <boost/beast/http/error.hpp>
 #include <crawler/caches/robots_cache.hpp>
 #include <crawler/caches/memory_buffer_tags.hpp>
-#include <crawler/utils/threaded_memory_buffer.hpp>
+#include <seutils/threaded_memory_buffer.hpp>
 #include "resource_handler.hpp"
+
+namespace se {
 
 namespace crawler {
 
 class HttpResourceHandler : 
     public ResourceHandler, 
-    public utils::ThreadedMemoryBuffer<resource_handling_tag> {
+    public se::utils::ThreadedMemoryBuffer<resource_handling_tag> {
 
 public:
     struct HttpResults {
@@ -59,3 +61,5 @@ protected:
 };
 
 } // namespace crawler
+
+} // namespace se

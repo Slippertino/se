@@ -2,6 +2,8 @@
 #include <crawler/parsers/robots/extended_robots_matcher.hpp>
 #include <crawler/parsers/robots/robots.hpp>
 
+namespace se {
+
 namespace crawler {
 
 namespace parsers {
@@ -28,3 +30,4 @@ std::vector<std::string> Robots::extract_sitemaps(const std::string& agent) cons
 
 } // namespace crawler
 
+} // namespace se

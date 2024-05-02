@@ -4,6 +4,8 @@
 #include <boost/url.hpp>
 #include <robotstxt/robots.h>
 
+namespace se {
+
 namespace crawler {
 
 namespace parsers {
@@ -26,3 +28,4 @@ private:
 
 } // namespace crawler
 
+} // namespace se

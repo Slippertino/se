@@ -1,6 +1,8 @@
 #include <crawler/handlers/resource_handler.hpp>
 #include <crawler/core/resource_processor.hpp>
 
+namespace se {
+
 namespace crawler {
 
 ResourceHandler::ResourceHandler(ResourceHandler::private_token) :
@@ -60,3 +62,5 @@ ResourceHandler::~ResourceHandler() {
 }
 
 } // namespace crawler
+
+} // namespace se

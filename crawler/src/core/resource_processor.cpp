@@ -1,5 +1,7 @@
 #include <crawler/core/resource_processor.hpp>
 
+namespace se {
+
 namespace crawler {
 
 ResourceProcessor::ResourceProcessor(
@@ -73,7 +75,7 @@ void ResourceProcessor::commit_resource(const IndexingResource& resource) {
     db_->upload_resource(resource);
 }
 
-void ResourceProcessor::send_to_index(const utils::CrawledResourceData& data) {
+void ResourceProcessor::send_to_index(const se::utils::CrawledResourceData& data) {
     bus_->send_resource(data);
 }
 
@@ -109,3 +111,5 @@ void ResourceProcessor::dispatch_service_data() {
 }
 
 } // namespace crawler
+
+} // namespace se

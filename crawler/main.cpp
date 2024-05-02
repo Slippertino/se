@@ -8,7 +8,7 @@ int main(int argc, char** argv) {
     cds::Initialize();
     {
         cds::gc::HP hpGC;
-        crawler::Crawler crawler;
+        se::crawler::Crawler crawler;
         crawler.setup(argc > 1 ? argv[1] : default_cfg_name);
         crawler.run();
     }

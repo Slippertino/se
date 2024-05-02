@@ -1,6 +1,8 @@
 #include <crawler/handlers/sitemap_handler.hpp>
 #include <crawler/core/resource_processor.hpp>
 
+namespace se {
+
 namespace crawler {
 
 SitemapHandler::SitemapHandler(private_token) : HttpResourceHandler({})
@@ -19,7 +21,7 @@ void SitemapHandler::handle_http_resource(
         auto& buffer = get_thread_resource();
         std::istringstream in{ std::move(results.body) };
         std::string error;
-        if (utils::ComperssionHelper::decompress_complex(in, buffer, error, [&out, &resource](auto name, auto content) {
+        if (se::utils::ComperssionHelper::decompress_complex(in, buffer, error, [&out, &resource](auto name, auto content) {
             extract_resources(resource, std::move(content), out);
         })) {
             LOG_ERROR_WITH_TAGS(
@@ -82,3 +84,5 @@ void SitemapHandler::extract_resources(
 }
 
 } // namespace crawler
+
+} // namespace se

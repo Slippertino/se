@@ -1,6 +1,8 @@
 #include <crawler/handlers/page_handler.hpp>
 #include <crawler/core/resource_processor.hpp>
 
+namespace se {
+
 namespace crawler {
 
 PageHandler::PageHandler(private_token) : HttpResourceHandler({})
@@ -21,7 +23,7 @@ void PageHandler::handle_http_resource(
         return;
     }
     auto indexing_ptr = static_cast<IndexingResource*>(resource.get());
-    indexing_ptr->checksum = utils::sha256(results.body);
+    indexing_ptr->checksum = se::utils::sha256(results.body);
     auto page_info = analyzer.analyze<Automaton>();
     auto& enc = page_info.encoding;
     std::transform(
@@ -52,7 +54,7 @@ void PageHandler::handle_http_resource(
     }
     if (page_info.can_index) {
         processor->send_to_index(
-            utils::CrawledResourceData {
+            se::utils::CrawledResourceData {
                 resource->url(),
                 std::move(results.body)
             }
@@ -102,3 +104,5 @@ std::vector<ResourcePtr> PageHandler::extract_links(
 }
 
 } // namespace crawler
+
+} // namespace se

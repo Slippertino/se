@@ -3,6 +3,8 @@
 #include <crawler/handlers/sitemap_handler.hpp>
 #include <crawler/handlers/page_handler.hpp>
 
+namespace se {
+
 namespace crawler {
 
 std::shared_ptr<class ResourceHandler> RobotsTxt::get_handler() const {
@@ -30,3 +32,5 @@ ResourcePtr Page::clone() const {
 }
 
 } // namespace crawler
+
+} // namespace se

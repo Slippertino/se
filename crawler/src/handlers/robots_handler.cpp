@@ -1,6 +1,8 @@
 #include <crawler/handlers/robotstxt_handler.hpp>
 #include <crawler/core/resource_processor.hpp>
 
+namespace se {
+
 namespace crawler {
 
 RobotsTxtHandler::RobotsTxtHandler(RobotsTxtHandler::private_token) : HttpResourceHandler({})
@@ -55,3 +57,5 @@ void RobotsTxtHandler::handle_http_resource(
 }
 
 } // namespace crawler
+
+} // namespace se

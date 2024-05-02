@@ -2,8 +2,10 @@
 
 #include <regex>
 #include <crawler/parsers/sitemap/parser.hpp>
-#include <crawler/utils/compression_helper.hpp>
+#include <seutils/compression_helper.hpp>
 #include "http_resource_handler.hpp"
+
+namespace se {
 
 namespace crawler {
 
@@ -30,3 +32,5 @@ private:
 };
 
 } // namespace crawler
+
+} // namespace se

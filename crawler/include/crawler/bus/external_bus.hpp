@@ -2,29 +2,31 @@
 
 #include <crawler/config.hpp>
 #include <crawler/caches/memory_buffer_tags.hpp>
-#include <crawler/utils/threaded_memory_buffer.hpp>
-#include <crawler/utils/dtos/batched_dto.hpp>
-#include <crawler/utils/models/resource_data.hpp>
-#include <crawler/utils/models/log_data.hpp>
-#include <crawler/logging/logging.hpp>
+#include <seutils/threaded_memory_buffer.hpp>
+#include <seutils/dtos/batched_dto.hpp>
+#include <seutils/models/resource_data.hpp>
+#include <seutils/models/log_data.hpp>
+#include <seutils/logging/logging.hpp>
+
+namespace se {
 
 namespace crawler {
 
 class IExternalBus : 
-    public utils::ThreadedResource<IExternalBus, utils::BatchedDTO<utils::CrawledResourceData>>,
-    public utils::ThreadedMemoryBuffer<crawled_resources_compression_tag>,
+    public se::utils::ThreadedResource<IExternalBus, se::utils::BatchedDTO<se::utils::CrawledResourceData>>,
+    public se::utils::ThreadedMemoryBuffer<crawled_resources_compression_tag>,
 
-    public utils::ThreadedResource<IExternalBus, utils::BatchedDTO<utils::LogData>>,
-    public utils::ThreadedMemoryBuffer<logs_compression_tag> {
+    public se::utils::ThreadedResource<IExternalBus, se::utils::BatchedDTO<se::utils::LogData>>,
+    public se::utils::ThreadedMemoryBuffer<logs_compression_tag> {
 
 private:
-    using CrawledResourceType = utils::BatchedDTO<utils::CrawledResourceData>;
-    using CrawledResource = utils::ThreadedResource<IExternalBus, CrawledResourceType>;
-    using CrawledBuffer = utils::ThreadedMemoryBuffer<crawled_resources_compression_tag>;
+    using CrawledResourceType = se::utils::BatchedDTO<se::utils::CrawledResourceData>;
+    using CrawledResource = se::utils::ThreadedResource<IExternalBus, CrawledResourceType>;
+    using CrawledBuffer = se::utils::ThreadedMemoryBuffer<crawled_resources_compression_tag>;
 
-    using LogType = utils::BatchedDTO<utils::LogData>;
-    using Log = utils::ThreadedResource<IExternalBus, LogType>;
-    using LogBuffer = utils::ThreadedMemoryBuffer<logs_compression_tag>;
+    using LogType = se::utils::BatchedDTO<se::utils::LogData>;
+    using Log = se::utils::ThreadedResource<IExternalBus, LogType>;
+    using LogBuffer = se::utils::ThreadedMemoryBuffer<logs_compression_tag>;
 
 public:
     IExternalBus() :
@@ -52,16 +54,16 @@ public:
         };
     }
     
-    void send_resource(const utils::CrawledResourceData& data) {
-        send_to_batch<CrawledResource, utils::CrawledResourceData>(
+    void send_resource(const se::utils::CrawledResourceData& data) {
+        send_to_batch<CrawledResource, se::utils::CrawledResourceData>(
             data, 
             crawled_resources_key_, 
             max_resource_batch_size_
         );
     }
 
-    void send_log(const utils::LogData& data) {
-        send_to_batch<Log, utils::LogData>(
+    void send_log(const se::utils::LogData& data) {
+        send_to_batch<Log, se::utils::LogData>(
             data, 
             logging_key_, 
             max_log_batch_size_
@@ -76,7 +78,13 @@ public:
     }
 
 protected:
-    virtual void send_data(const std::string& type, const std::string& data, bool log_on_error) = 0;
+    virtual void send_data(const std::string& type, std::string data, bool log_on_error = true) = 0;
+    virtual void start_receiving_data(
+        const std::string& queue, 
+        std::function<void(const char*, uint64_t)> on_success, 
+        std::function<void(const char*)> on_fail
+    ) = 0;
+    virtual void stop_receiving_data(const std::string& key) = 0;
 
 private:
     template<typename ResourceType, typename ResourceDataType>
@@ -92,12 +100,12 @@ private:
         try {
             auto& batch = ThreadResource::get_thread_resource();
             std::ostringstream buffer;
-            boost::archive::text_oarchive oa{ buffer };
+            boost::archive::text_oarchive oa{ buffer, boost::archive::no_header };
             oa << batch;
-            send_data(key, buffer.str(), key != logging_key_);        
+            send_data(key, std::move(buffer.str()), key != logging_key_);        
         } catch(const std::exception& ex) {
             LOG_ERROR_WITH_TAGS(
-                logging::bus_category, 
+                se::utils::logging::bus_category, 
                 "Error occured while flushing batch with key {}: {}.", 
                 key,
                 ex.what()
@@ -115,3 +123,5 @@ private:
 };
 
 } // namespace crawler
+
+} // namespace se

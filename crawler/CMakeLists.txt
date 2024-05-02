@@ -9,26 +9,20 @@ set(BUILD_SHARED_LIBS ON)
 set(CRAWLER_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(CRAWLER_THIRD_PARTY ${CMAKE_CURRENT_LIST_DIR}/third-party)
 
+# Boost
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost COMPONENTS system thread atomic date_time url serialization REQUIRED)
 
-#find_package(libpqxx CONFIG REQUIRED)
-#find_package(LibCDS CONFIG REQUIRED)
-#target_compile_options(LibCDS::cds-s INTERFACE -std=c++20)
-find_package(OpenSSL REQUIRED)
-find_package(amqpcpp CONFIG REQUIRED)
-find_package(LibArchive REQUIRED)
+# Quill
 find_package(quill CONFIG REQUIRED)
 
-set(BUILD_TEST OFF)
-add_subdirectory(${CRAWLER_THIRD_PARTY}/libpqxx)
-set(BUILD_TEST OFF)
-
+# Cds
 add_subdirectory(${CRAWLER_THIRD_PARTY}/libcds)
-target_compile_options(cds INTERFACE -std=c++20)
+target_compile_options(cds-s INTERFACE -std=c++20)
 
+# Robots
 set(ROBOTS_BUILD_STATIC OFF)
 set(ROBOTS_INSTALL ON)
 add_subdirectory(${CRAWLER_THIRD_PARTY}/robotstxt)
@@ -46,9 +40,10 @@ endfunction()
 get_all_targets(OUT ${CRAWLER_THIRD_PARTY}/robotstxt)
 set_target_properties(${OUT} PROPERTIES CXX_STANDARD 17)
 
+# Others
 add_subdirectory(${CRAWLER_THIRD_PARTY}/certify)
-add_subdirectory(${CRAWLER_THIRD_PARTY}/yaml-cpp)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../html-analyzer htmlanalyzer)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../utils seutils)
 
 file(GLOB_RECURSE SOURCES 
     ${CMAKE_CURRENT_LIST_DIR}/include/* 
@@ -65,13 +60,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS} ${CRAWL
 target_link_libraries(${PROJECT_NAME} PRIVATE 
     ${Boost_LIBRARIES} 
     robots
+    seutils
     htmlanalyzer 
-    cds
-    amqpcpp
+    cds-s
     certify::core
-    libpqxx::pqxx
-    quill::quill
-    LibArchive::LibArchive
-    OpenSSL::Crypto
-    yaml-cpp::yaml-cpp
 )

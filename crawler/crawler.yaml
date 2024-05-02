@@ -1,4 +1,5 @@
 crawler:
+  component_name: CRAWLER
   name: IRSCrawler
   services:
     distributor:
@@ -37,6 +38,9 @@ crawler:
         compression_type: lzma
   logging:
     lvl: info
-    formats:
+    log_formats:
       console: "%(time) [%(thread_id)] %(log_level) %(custom_tags) - %(message)"
       bus: "[%(thread_id)]\t%(message)"
+    time_formats:
+      console: "%Y-%m-%d %H:%M:%S"
+      bus: "%Y-%m-%d %H:%M:%S"

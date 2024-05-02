@@ -5,6 +5,8 @@
 #include "resource_loader.hpp"
 #include "http_loader.hpp"
 
+namespace se {
+
 namespace crawler {
 
 class ResourceLoadersFactory final {
@@ -29,3 +31,5 @@ private:
 };
 
 } // namespace crawler
+
+} // namespace se

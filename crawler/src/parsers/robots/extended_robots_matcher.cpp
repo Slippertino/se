@@ -1,5 +1,7 @@
 #include <crawler/parsers/robots/extended_robots_matcher.hpp>
 
+namespace se {
+
 namespace crawler {
 
 namespace parsers {
@@ -22,3 +24,4 @@ void ExtendedRobotsMatcher::HandleSitemap(int line_num, absl::string_view value)
 
 } // namespace crawler
 
+} // namespace se

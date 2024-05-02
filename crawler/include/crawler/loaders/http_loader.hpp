@@ -9,6 +9,8 @@
 #include <crawler/config.hpp>
 #include "resource_loader.hpp"
 
+namespace se {
+
 namespace crawler {
 
 class HttpLoader final : public ResourceLoader {
@@ -180,3 +182,5 @@ private:
 };
 
 } // namespace crawler
+
+} // namespace se

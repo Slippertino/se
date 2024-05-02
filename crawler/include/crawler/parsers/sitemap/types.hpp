@@ -4,6 +4,8 @@
 #include <optional>
 #include <variant>
 
+namespace se {
+
 namespace crawler {
 
 namespace parsers {
@@ -34,3 +36,5 @@ struct SitemapAny {
 } // namespace parsers
 
 } // namespace crawler
+
+} // namespace se

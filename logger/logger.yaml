@@ -1,0 +1,15 @@
+logger:
+  options:
+    memory_limit: 10240
+    reduce_ratio: 0.5
+    periodicity_ms: 500
+  db:
+    connection_string: postgresql://admin:1234@localhost:5432/logging
+  bus:
+    thread_pool: 3
+    connection_string: amqp://guest:guest@localhost:5672/
+    queues:
+      logging: logs
+  logging:
+    log_format: "%(time) [%(thread_id)] %(log_level) %(custom_tags) - %(message)"
+    time_format: "%Y-%m-%d %H:%M:%S"

@@ -2,7 +2,9 @@
 
 #include <optional>
 #include <crawler/parsers/robots/robots.hpp>
-#include <crawler/utils/static_shared_resource.hpp>
+#include <seutils/static_shared_resource.hpp>
+
+namespace se {
 
 namespace crawler {
 
@@ -27,6 +29,8 @@ struct RobotState {
 };
 
 class RobotsCache 
-    : public utils::StaticSharedResource<RobotsCache, RobotState> { };
+    : public se::utils::StaticSharedResource<RobotsCache, RobotState> { };
 
 } // namespace crawler
+
+} // namespace se

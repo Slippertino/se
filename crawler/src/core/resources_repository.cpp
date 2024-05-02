@@ -1,5 +1,7 @@
 #include <crawler/core/resources_repository.hpp>
 
+namespace se {
+
 namespace crawler {
 
 ResourcesRepository::ResourcesRepository() : 
@@ -151,3 +153,5 @@ void ResourcesRepository::push_to_output(Resource* rptr) {
 }
 
 } // namespace crawler
+
+} // namespace se

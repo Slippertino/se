@@ -3,6 +3,8 @@
 #include <crawler/parsers/robots/robots.hpp>
 #include "http_resource_handler.hpp"
 
+namespace se {
+
 namespace crawler {
 
 class RobotsTxtHandler final : public HttpResourceHandler {
@@ -23,3 +25,5 @@ protected:
 };
 
 } // namespace crawler
+
+} // namespace se

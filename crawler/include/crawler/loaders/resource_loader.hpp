@@ -12,6 +12,8 @@
 #include <crawler/caches/dns_cache.hpp>
 #include "resource_loader.hpp"
 
+namespace se {
+
 namespace crawler {
 
 class ResourceLoader {
@@ -90,3 +92,5 @@ private:
 };
 
 } // namespace icrawler
+
+} // namespace se

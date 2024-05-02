@@ -6,14 +6,16 @@
 #include <cds/container/michael_map.h>
 #include <crawler/config.hpp>
 #include <crawler/core/resource.hpp>
-#include <crawler/utils/service.hpp>
+#include <seutils/service.hpp>
 #include <crawler/db/data_provider.hpp>
 #include <crawler/logging/logging.hpp>
 #include <crawler/core/resources_repository.hpp>
 
+namespace se {
+
 namespace crawler {
 
-class ResourceDistributor final : public utils::Service {
+class ResourceDistributor final : public se::utils::Service {
 public:
     ResourceDistributor() = delete;
     ResourceDistributor(
@@ -84,3 +86,5 @@ private:
 };
 
 } // namespace crawler
+
+} // namespace se

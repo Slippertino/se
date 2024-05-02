@@ -3,8 +3,10 @@
 #include <boost/system/system_error.hpp>
 #include <htmlanalyzer/html_analyzer.hpp>
 #include <htmlanalyzer/automatons/automatons.hpp>
-#include <crawler/utils/crypto.hpp>
+#include <seutils/crypto.hpp>
 #include "http_resource_handler.hpp"
+
+namespace se {
 
 namespace crawler {
 
@@ -32,3 +34,5 @@ private:
 };
 
 } // namespace crawler
+
+} // namespace se

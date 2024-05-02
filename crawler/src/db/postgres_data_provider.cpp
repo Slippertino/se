@@ -1,12 +1,31 @@
-#include <iostream>
 #include <crawler/db/postgres_data_provider.hpp>
+
+namespace se {
 
 namespace crawler {
 
 PostgresDataProvider::PostgresDataProvider(const DbConfig& config) : 
     config_ { config },
     connections_{ config.connection_url }
-{ }
+{ 
+    connections_
+    .add_prepared_query(
+        "get_unhandled_domains_top",                
+        "SELECT * FROM get_unhandled_domains_top($1)"
+    )
+    .add_prepared_query(
+        "get_unhandled_resources_top_by_domain",    
+        "SELECT * FROM get_unhandled_resources_top_by_domain($1, $2, $3)"
+    )
+    .add_prepared_query(
+        "get_resource",                             
+        "SELECT * FROM get_resource($1, $2, $3)"
+    )
+    .add_prepared_query(
+        "upload_resource",                          
+        "CALL upload_resource($1, $2, $3, $4, $5)"
+    );
+}
 
 bool PostgresDataProvider::enabled() {
     auto conn = connections_.create_thread_resource<pqxx::connection>();
@@ -33,7 +52,7 @@ std::vector<ResourceHeader> PostgresDataProvider::get_unhandled_headers_top(int 
         return out;
     } catch(const std::exception& ex) {
         LOG_ERROR_WITH_TAGS(
-            logging::db_category, 
+            se::utils::logging::db_category, 
             "Database error in {}: {}.",
             __PRETTY_FUNCTION__,
             ex.what()
@@ -58,7 +77,7 @@ std::vector<IndexingResourcePtr> PostgresDataProvider::get_unhandled_top_by_head
         return out;    
     } catch(const std::exception& ex) {
         LOG_ERROR_WITH_TAGS(
-            logging::db_category, 
+           se::utils::logging::db_category, 
             "Database error in {}: {}.",
             __PRETTY_FUNCTION__,
             ex.what()
@@ -84,7 +103,7 @@ IndexingResourcePtr PostgresDataProvider::get_resource(const ResourceHeader& hea
         );
     } catch(const std::exception& ex) {
         LOG_ERROR_WITH_TAGS(
-            logging::db_category, 
+            se::utils::logging::db_category,  
             "Database error in {}: {}.",
             __PRETTY_FUNCTION__,
             ex.what()
@@ -107,7 +126,7 @@ void PostgresDataProvider::upload_resource(const IndexingResource& resource) {
         session.commit();
     } catch(const std::exception& ex) {
         LOG_ERROR_WITH_TAGS(
-            logging::db_category, 
+            se::utils::logging::db_category,  
             "Database error in {}: {}.",
             __PRETTY_FUNCTION__,
             ex.what()
@@ -123,7 +142,7 @@ void PostgresDataProvider::finalize() {
         session.commit();
     } catch(const std::exception& ex) {
         LOG_ERROR_WITH_TAGS(
-            logging::db_category, 
+            se::utils::logging::db_category,  
             "Database error in {}: {}.",
             __PRETTY_FUNCTION__,
             ex.what()
@@ -140,8 +159,10 @@ auto PostgresDataProvider::get_connection() -> pqxx::connection& {
 bool PostgresDataProvider::test_connection(pqxx::connection& con) {
     auto res = con.is_open();
     if (!res)
-        LOG_ERROR_WITH_TAGS(logging::db_category, "Database connection is not estabilished.");
+        LOG_ERROR_WITH_TAGS(se::utils::logging::db_category, "Database connection is not estabilished.");
     return res;
 }
 
 } // namespace crawler
+
+} // namespace se

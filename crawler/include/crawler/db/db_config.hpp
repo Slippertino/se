@@ -2,6 +2,8 @@
 
 #include <boost/url.hpp>
 
+namespace se {
+
 namespace crawler {
 
 struct DbConfig {
@@ -9,3 +11,5 @@ struct DbConfig {
 };
 
 } // namespace crawler
+
+} // namespace se

@@ -8,13 +8,15 @@
 #include <crawler/core/resource_distributor.hpp>
 #include <crawler/core/resource_processor.hpp>
 #include <crawler/db/postgres_data_provider.hpp>
-#include <crawler/bus/amqp/amqp_bus.hpp>
 #include <crawler/logging/logging.hpp>
-#include <crawler/logging/bus_handler.hpp>
+#include <seutils/amqp/amqp_bus.hpp>
+#include <seutils/logging/bus_handler.hpp>
+
+namespace se {
 
 namespace crawler {
 
-class Crawler : public utils::Service {
+class Crawler : public se::utils::Service {
 public:
     Crawler();
     void setup(const std::string& cfg);
@@ -25,12 +27,15 @@ protected:
     void dispatch_service_data() override;
 
 private:
+    using BusHandlerType = se::utils::logging::BusHandler<IExternalBus>;
+    
+private:
     bool try_configure_db();
     bool try_configure_bus();
     bool try_configure_queue();
     bool try_configure_distributor();
     bool try_configure_processor();
-    bool try_configure_logging(std::shared_ptr<logging::BusHandler>& bus_out_handler);
+    bool try_configure_logging(std::shared_ptr<BusHandlerType>& bus_out_handler);
 
 private:
     std::atomic<bool> config_errors_;
@@ -38,7 +43,7 @@ private:
     std::shared_ptr<ResourcesRepository> queue_;
     std::shared_ptr<ResourceProcessor> processor_;
     std::shared_ptr<PostgresDataProvider> db_;
-    std::shared_ptr<AMQPBus> bus_;
+    std::shared_ptr<se::utils::AMQPBusMixin<IExternalBus>> bus_;
 
 private:
     boost::thread_group bus_group_;
@@ -48,3 +53,5 @@ private:
 }; 
 
 } // namespace crawler
+
+} // namespace se

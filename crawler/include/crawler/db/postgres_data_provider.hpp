@@ -2,8 +2,10 @@
 
 #include "data_provider.hpp"
 #include "db_config.hpp"
-#include <crawler/caches/connections_pools/postgres_connections_pool.hpp>
+#include <seutils/connections_pools/postgres_connections_pool.hpp>
 #include <crawler/logging/logging.hpp>
+
+namespace se {
 
 namespace crawler {
 
@@ -11,8 +13,7 @@ class PostgresDataProvider : public IDataProvider {
 public:
     PostgresDataProvider(const DbConfig& config);
 
-    bool enabled();
-
+    bool enabled() override;
     std::vector<ResourceHeader> get_unhandled_headers_top(int limit) override;
     std::vector<IndexingResourcePtr> get_unhandled_top_by_header(const ResourceHeader& header, int limit) override;
     IndexingResourcePtr get_resource(const ResourceHeader& header, const std::string& uri) override;
@@ -25,7 +26,9 @@ private:
 
 private:
     DbConfig config_;
-    PostgresConnectionsPool connections_;
+    se::utils::PostgresConnectionsPool connections_;
 };
 
 } // namespace crawler
+
+} // namespace se

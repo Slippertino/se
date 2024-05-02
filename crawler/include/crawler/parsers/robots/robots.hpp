@@ -3,6 +3,8 @@
 #include <vector>
 #include <boost/url.hpp>
 
+namespace se {
+
 namespace crawler {
 
 namespace parsers {
@@ -21,3 +23,4 @@ private:
 
 } // namespace crawler
 
+} // namespace se

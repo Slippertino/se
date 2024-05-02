@@ -10,8 +10,10 @@
 #include <cds/container/fcpriority_queue.h>
 #include <crawler/config.hpp>
 #include <crawler/core/resource.hpp>
-#include <crawler/utils/service.hpp>
+#include <seutils/service.hpp>
 #include <crawler/logging/logging.hpp>
+
+namespace se {
 
 namespace crawler {
 
@@ -33,12 +35,14 @@ struct PackedResource {
 
 } // namespace crawler
 
+} // namespace se
+
 namespace std {
     template<>
-    struct less<crawler::details::PackedResource> {
+    struct less<se::crawler::details::PackedResource> {
         bool operator()(
-            const crawler::details::PackedResource& lhs, 
-            const crawler::details::PackedResource& rhs
+            const se::crawler::details::PackedResource& lhs, 
+            const se::crawler::details::PackedResource& rhs
         ) const {
             return 
                 (lhs.resource->priority < rhs.resource->priority) || 
@@ -47,11 +51,13 @@ namespace std {
     };
 }
 
+namespace se {
+
 namespace crawler {
 
-class ResourcesRepository final : public utils::Service {
+class ResourcesRepository final : public se::utils::Service {
 
-    using utils::Service::context_;
+    using se::utils::Service::context_;
     
 private:
     struct DomainsContainerTraits : public cds::container::feldman_hashmap::traits {
@@ -107,3 +113,5 @@ private:
 };
 
 } // namespace crawler
+
+} // namespace se

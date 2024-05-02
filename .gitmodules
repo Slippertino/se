@@ -13,3 +13,18 @@
 [submodule "crawler/third-party/libpqxx"]
 	path = crawler/third-party/libpqxx
 	url = https://github.com/jtv/libpqxx
+[submodule "logger/third-party/yaml-cpp"]
+	path = logger/third-party/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp
+[submodule "logger/third-party/libpqxx"]
+	path = logger/third-party/libpqxx
+	url = https://github.com/jtv/libpqxx
+[submodule "utils/third-party/libpqxx"]
+	path = utils/third-party/libpqxx
+	url = https://github.com/jtv/libpqxx
+[submodule "utils/third-party/yaml-cpp"]
+	path = utils/third-party/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp
+[submodule "logger/third-party/libcds"]
+	path = logger/third-party/libcds
+	url = https://github.com/khizmax/libcds

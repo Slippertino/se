@@ -8,6 +8,8 @@
 #include <crawler/types.hpp>
 #include <crawler/caches/string_caches.hpp>
 
+namespace se {
+
 namespace crawler {
 
 using ResourcePtr = std::unique_ptr<struct Resource>;
@@ -122,3 +124,5 @@ struct Page : IndexingResource {
 };
 
 } // namespace crawler
+
+} // namespace se

@@ -6,6 +6,8 @@
 #include <crawler/loaders/loaders_factory.hpp>
 #include <crawler/logging/logging.hpp>
 
+namespace se {
+
 namespace crawler {
 
 class ResourceHandler : public std::enable_shared_from_this<ResourceHandler> {
@@ -53,3 +55,5 @@ private:
 };
 
 } // namespace crawler
+
+} // namespace se

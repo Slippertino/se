@@ -1,5 +1,7 @@
 #include <crawler/core/resource_distributor.hpp>
 
+namespace se {
+
 namespace crawler {
 
 ResourceDistributor::ResourceDistributor(
@@ -120,3 +122,5 @@ void ResourceDistributor::distribute_no_check(ResourcePtr resource) {
 }
 
 } // namespace crawler
+
+} // namespace se

@@ -1,11 +1,13 @@
 #include <crawler/handlers/http_resource_handler.hpp>
 #include <crawler/core/resource_processor.hpp>
 
+namespace se {
+
 namespace crawler {
 
 HttpResourceHandler::HttpResourceHandler(HttpResourceHandler::private_token) : 
     ResourceHandler({}),
-    utils::ThreadedMemoryBuffer<resource_handling_tag>{ Config::max_resource_size() }
+    se::utils::ThreadedMemoryBuffer<resource_handling_tag>{ Config::max_resource_size() }
 { } 
 
 HttpResourceHandler::~HttpResourceHandler() { }
@@ -143,3 +145,5 @@ void HttpResourceHandler::handle_resource(
 }
 
 } // namespace crawler
+
+} // namespace se

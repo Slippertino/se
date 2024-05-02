@@ -8,6 +8,8 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include "types.hpp"
 
+namespace se {
+
 namespace crawler {
 
 namespace parsers {
@@ -186,3 +188,5 @@ inline auto SitemapParser::end() const noexcept {
 } // namespace parsers
 
 } // namespace crawler
+
+} // namespace se
