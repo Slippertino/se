@@ -22,6 +22,8 @@ protected:
     static bool is_node_text(const GumboNode* node);
     static bool is_node_element(const GumboNode* node);
 
+    static void tolower(std::string& s);
+
 protected:
     PageInfo &info_;
     bool exposed_ = false;

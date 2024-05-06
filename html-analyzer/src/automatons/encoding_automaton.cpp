@@ -2,32 +2,36 @@
 
 namespace html_analyzer {
 
-std::string EncodingAutomaton::default_encoding = "utf-8";
+const std::string EncodingAutomaton::default_encoding_ = "utf-8";
+const std::regex EncodingAutomaton::encoding_pattern_ = std::regex(R"(.*\s*charset=([^;\s]+).*)");
 
-EncodingAutomaton::EncodingAutomaton(PageInfo &info) : HTMLAutomaton(info) { 
-    info.encoding = default_encoding;
+EncodingAutomaton::EncodingAutomaton(PageInfo &info) : HTMLAutomaton(info) 
+{ }
+
+EncodingAutomaton::~EncodingAutomaton() {
+    if (info_.encoding.empty())
+        info_.encoding = default_encoding_;
+    tolower(info_.encoding);
 }
 
 void EncodingAutomaton::update_impl(const GumboNode* node) {
-    if (!is_node_element(node))
+    if (!is_node_element(node) || node->v.element.tag != GUMBO_TAG_META)
         return;
-        
-    if (node->v.element.tag != GUMBO_TAG_META)
-        return;
-
     GumboAttribute* attr;
     if (attr = gumbo_get_attribute(&node->v.element.attributes, "charset")) {
         info_.encoding = std::string(attr->value);
         exposed_ = true;
     }
-    else if (attr = gumbo_get_attribute(&node->v.element.attributes, "content")) {
-        auto cont = std::string(attr->value);
-        auto key = std::string{"charset="};
-        auto it = std::remove(cont.begin(), cont.end(), ' ');
-        cont.erase(it, cont.end());
-        auto pos = cont.find(key);
-        if (pos != std::string::npos) {
-            info_.encoding = cont.substr(pos + key.size());
+    else if (attr = gumbo_get_attribute(&node->v.element.attributes, "http-equiv")) {
+        auto category = std::string(attr->value);
+        tolower(category);
+        if (category != "content-type") 
+            return;
+        attr = gumbo_get_attribute(&node->v.element.attributes, "content");
+        std::smatch sm;
+        std::string value = attr->value;
+        if (std::regex_match(value, sm, encoding_pattern_)) {
+            info_.encoding = sm[1];
             exposed_ = true;
         }
     }

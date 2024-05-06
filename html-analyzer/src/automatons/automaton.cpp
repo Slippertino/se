@@ -10,7 +10,8 @@ bool HTMLAutomaton::is_exposed() const noexcept {
 }
 
 void HTMLAutomaton::update(const GumboNode* node) {
-    if (exposed_) return;
+    if (exposed_) 
+        return;
     update_impl(node);
 }
 
@@ -22,6 +23,12 @@ bool HTMLAutomaton::is_node_text(const GumboNode* node) {
 
 bool HTMLAutomaton::is_node_element(const GumboNode* node) {
     return node->type == GUMBO_NODE_ELEMENT;
+}
+
+void HTMLAutomaton::tolower(std::string& s) {
+    std::transform(s.begin(), s.end(), s.begin(), [](auto ch) {
+        return ::tolower(ch);
+    });
 }
 
 } // namespace html_analyzer

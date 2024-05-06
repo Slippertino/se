@@ -16,6 +16,10 @@ std::string get_content(const std::string &file) {
 
 using MyAutomaton = html_analyzer::CombinedAutomaton<
     html_analyzer::EncodingAutomaton,
+    html_analyzer::LanguageAutomaton,
+    html_analyzer::DescriptionAutomaton,
+    html_analyzer::TextAutomaton<decltype([](GumboTag){ return 1.0; })>,
+    html_analyzer::KeywordsAutomaton,
     html_analyzer::LinkAutomaton<true>,
     html_analyzer::TitleAutomaton,
     html_analyzer::RobotHintsAutomaton
@@ -25,11 +29,7 @@ int main(int argc, char** argv) {
     auto content = get_content(argv[1]);
     html_analyzer::HTMLAnalyzer obj{content};
     auto res = obj.analyze<MyAutomaton>();
-    std::cout << std::boolalpha << res.can_index << "\n" << res.can_follow << "\n";
-    std::cout << res.encoding << "\n";
-    std::cout << res.linked_uris.size() << "\n";
-    std::cout << res.title << "\n";
-    std::cout << std::boolalpha << obj.is_valid() << "\n";
-
+    for(const auto& ex : res.excerpts) 
+        std::cout << ex.pos << " " << ex.lang << " " << ex.rank << " " << ex.text << "\n";
     return 0;
 }

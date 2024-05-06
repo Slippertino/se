@@ -17,7 +17,7 @@ public:
     { }
 
 protected:
-    void update_impl(const GumboNode* node) override final {
+    void update_impl(const GumboNode* node) override {
         exposed_ = true;
         for(auto &am : automatons_) {
             am->update(node);

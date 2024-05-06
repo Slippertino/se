@@ -14,10 +14,9 @@ public:
     { }
 
 protected:
-    void update_impl(const GumboNode* node) override final {
+    void update_impl(const GumboNode* node) override {
         if (!is_node_element(node))
             return;
-            
         GumboAttribute* attr;
         if (node->v.element.tag == GUMBO_TAG_A &&
             (attr = gumbo_get_attribute(&node->v.element.attributes, "href"))) {

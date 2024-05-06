@@ -14,7 +14,7 @@ public:
     RobotHintsAutomaton(PageInfo &info);
     
 protected:
-    void update_impl(const GumboNode* node) override final;
+    void update_impl(const GumboNode* node) override;
 
 private:
     using Hint = int;
