@@ -19,8 +19,8 @@ find_package(Boost COMPONENTS system thread atomic date_time url serialization R
 find_package(quill CONFIG REQUIRED)
 
 # Cds
-add_subdirectory(${CRAWLER_THIRD_PARTY}/libcds)
-target_compile_options(cds-s INTERFACE -std=c++20)
+#add_subdirectory(${CRAWLER_THIRD_PARTY}/libcds)
+#target_compile_options(cds-s INTERFACE -std=c++20)
 
 # Robots
 set(ROBOTS_BUILD_STATIC OFF)
@@ -38,7 +38,7 @@ function(get_all_targets _result _dir)
 endfunction()
 
 get_all_targets(OUT ${CRAWLER_THIRD_PARTY}/robotstxt)
-set_target_properties(${OUT} PROPERTIES CXX_STANDARD 17)
+set_target_properties(${OUT} PROPERTIES CXX_STANDARD 20)
 
 # Others
 add_subdirectory(${CRAWLER_THIRD_PARTY}/certify)
@@ -62,6 +62,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     robots
     seutils
     htmlanalyzer 
-    cds-s
     certify::core
 )

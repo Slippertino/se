@@ -29,9 +29,14 @@ public:
         return source_.at(key);
     }
 
-    void upload(const std::string& key, Resource res) {
+    void upload_range(const std::vector<std::pair<std::string, Resource>>& range) {
         std::lock_guard locker{ mutex_ };
-        source_.insert({ key, std::move(res) });
+        for(const auto& v : range)
+            source_.insert({ v.first, v.second });
+    }
+
+    void upload(const std::string& key, Resource res) {
+        upload_range({{ key, std::move(res)}});
     }
 
     template<std::invocable Func>

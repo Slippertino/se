@@ -12,11 +12,8 @@ HttpResourceHandler::HttpResourceHandler(HttpResourceHandler::private_token) :
 
 HttpResourceHandler::~HttpResourceHandler() { }
 
-bool HttpResourceHandler::check_permissions(
-    const ResourcePtr& resource,
-    std::shared_ptr<ResourceProcessor>& processor
-) const {
-    const auto& domain = *resource->header.domain;
+bool HttpResourceHandler::check_permissions() const {
+    const auto& domain = *resource_->header.domain;
     auto& robots_cache = RobotsCache::instance();
     if (!robots_cache.contains(domain))
         return false;
@@ -24,66 +21,55 @@ bool HttpResourceHandler::check_permissions(
     if (!state.robots.has_value())
         return false;
     const auto& robots = state.robots.value();
-    if (!robots.allowed(Config::name(), resource->url())) {
-        LOG_TRACE_L1_WITH_TAGS(logging::handler_category, "Permission denied to {}", resource->url().c_str());
+    if (!robots.allowed(Config::name(), resource_->url())) {
+        LOG_TRACE_L1_WITH_TAGS(logging::handler_category, "Permission denied to {}", resource_->url().c_str());
         return false;
     }
     return true;
 } 
 
-void HttpResourceHandler::handle_no_permissions(
-    const ResourcePtr& resource,
-    std::shared_ptr<class ResourceProcessor>& processor
-) {
-    const auto& domain = *resource->header.domain;
+void HttpResourceHandler::handle_no_permissions() {
+    const auto& domain = *resource_->header.domain;
     auto& robots_cache = RobotsCache::instance();
     if (!robots_cache.contains(domain))
         robots_cache.upload(domain, RobotState{});
     const auto& state = robots_cache[domain];
     if (state.type == RobotStateType::Loaded)
         return;
+    set_handling_status(HandlingStatus::partly_handled);
+    if (state.type == RobotStateType::Loading)
+        return;
     std::vector<ResourcePtr> resources;
-    if (state.type == RobotStateType::None && state.load_attempts_last) {
-        resources.push_back(Resource::create_from_url<RobotsTxt, Resource>(resource->header.url()));
-        robots_cache.modify(domain, [](RobotState& state){
-            state.type = RobotStateType::Loading;
-        });
-    }
-    resources.push_back(resource->clone());
-    processor->handle_new_resources(std::move(resources));    
+    resources.push_back(Resource::create_from_url<RobotsTxt, Resource>(resource_->header.url()));
+    robots_cache.modify(domain, [](RobotState& state) {
+        state.type = RobotStateType::Loading;
+    });
+    if (auto proc = processor_.lock())
+        proc->handle_new_resources(std::move(resources));
 }
 
-void HttpResourceHandler::handle_failed_load(        
-    ResourcePtr& resource, 
-    std::shared_ptr<ResourceProcessor>& processor
-) { }
+void HttpResourceHandler::handle_failed_load() { }
 
-void HttpResourceHandler::handle_resource(
-    ResourcePtr& resource, 
-    std::shared_ptr<ResourceProcessor> processor, 
-    ResourceLoader::ResourceLoadResults results
-) {
-    processor->handle_resource_received(resource);
+void HttpResourceHandler::handle_resource(ResourceLoader::ResourceLoadResults results) {
     if (!results.success) {
         LOG_ERROR_WITH_TAGS(
             logging::handler_category, 
             "Failed to get {} with error: {}.", 
-            resource->url().c_str(),
+            resource_->url().c_str(),
             results.error_message
         );
-        handle_failed_load(resource, processor);
+        handle_failed_load();
         return;   
     }
     if (results.content.size() > get_thread_resource().size()) {
         LOG_WARNING_WITH_TAGS(
             logging::handler_category, 
             "The size of the resource {} exceeds the allowed limit.", 
-            resource->url().c_str()
+            resource_->url().c_str()
         );
-        handle_failed_load(resource, processor);
+        handle_failed_load();
         return;
     }
-
     boost::beast::http::response_parser<boost::beast::http::string_body> parser;
     boost::beast::error_code ec;
     parser.put(boost::asio::buffer(results.metadata), ec);
@@ -91,57 +77,97 @@ void HttpResourceHandler::handle_resource(
         LOG_ERROR_WITH_TAGS(
             logging::handler_category, 
             "Couldn't read metadata of {} with error: {}.", 
-            resource->url().c_str(),
+            resource_->url().c_str(),
             ec.message()
         );
-        handle_failed_load(resource, processor);
+        handle_failed_load();
         return;
     }
     auto& headers = parser.get();
-    auto code = headers.result_int();
+    auto code = headers.result();
+    if (code_handlers_.contains(code))
+        code_handlers_.at(code)(this, results, headers);
+    else 
+        handle_unknown_code(results, headers);
+}
+
+void HttpResourceHandler::handle_ok(ResourceLoader::ResourceLoadResults& results, headers_t& headers) {
+    if (auto proc = processor_.lock())
+        proc->handle_resource_received(resource_);
+    HttpResults http_results { 
+        std::move(headers), 
+        std::move(results.content)
+    };
+    try {
+        handle_http_resource(http_results);
+    } catch(const std::exception& ex) {
+        LOG_ERROR_WITH_TAGS(
+            logging::handler_category, 
+            "Error occured while processing resource {}: {}", 
+            resource_->url().c_str(),
+            ex.what()
+        );
+    }
+}
+
+void HttpResourceHandler::handle_redirect(ResourceLoader::ResourceLoadResults& results, headers_t& headers) {
+    auto proc = processor_.lock();
+    if (proc)
+        proc->handle_resource_received(resource_);
+    auto loc = boost::url(headers["Location"]);
+    loc.set_scheme(*resource_->header.type);
+    LOG_WARNING_WITH_TAGS(
+        logging::handler_category, 
+        "HTTP redirection ({}) from {} to {}.", 
+        headers.result_int(),
+        resource_->url().c_str(),
+        loc.c_str()
+    );
     std::vector<ResourcePtr> resources;
-    if (code == 200) {
-        HttpResults http_results{ 
-            std::move(headers), 
-            std::move(results.content)
-        };
-        try {
-            handle_http_resource(resource, processor, http_results);
-            return;
-        } catch(const std::exception& ex) {
-            LOG_ERROR_WITH_TAGS(
-                logging::handler_category, 
-                "Error occured while processing resource {}: {}", 
-                resource->url().c_str(),
-                ex.what()
-            );
-        }
-    }
-    else if (code == 301 || code == 302) {
-        auto loc = boost::url(headers["Location"]);
-        loc.set_scheme(*resource->header.type);
-        resources.push_back(
-            Resource::create_from_url<Page, Resource>(loc, loc.path() + loc.query())
-        );
-        processor->handle_new_resources(std::move(resources));
-    }
-    else if (code >= 400) {
-        LOG_WARNING_WITH_TAGS(
-            logging::handler_category, 
-            "Bad HTTP response code {} while fetching resource {}.", 
-            code,
-            resource->url().c_str()
-        );
-    }
-    else {
-        LOG_WARNING_WITH_TAGS(
-            logging::handler_category, 
-            "Unhandled HTTP {} response code occurs while fetching resource {}.", 
-            code,
-            resource->url().c_str()
-        );
-    }
-    handle_failed_load(resource, processor);
+    resources.push_back(
+        Resource::create_from_url<Page, Resource>(loc, loc.path() + loc.query())
+    );
+    if (proc)
+        proc->handle_new_resources(std::move(resources));
+    handle_failed_load();
+}
+
+void HttpResourceHandler::handle_bad_request(ResourceLoader::ResourceLoadResults& results, headers_t& headers) {
+    if (auto proc = processor_.lock())
+        proc->handle_resource_received(resource_);
+    LOG_WARNING_WITH_TAGS(
+        logging::handler_category, 
+        "Bad HTTP response code {} while fetching resource {}.", 
+        headers.result_int(),
+        resource_->url().c_str()
+    );
+    handle_failed_load();
+}
+
+void HttpResourceHandler::handle_requests_overflow(ResourceLoader::ResourceLoadResults& results, headers_t& headers) {
+    auto delay_sec = std::atoi(headers["Retry-After"].data());
+    set_handling_status(HandlingStatus::partly_handled);
+    if (auto proc = processor_.lock())
+        proc->handle_resource_received(resource_, true, std::chrono::seconds(delay_sec));    
+    LOG_WARNING_WITH_TAGS(
+        logging::handler_category, 
+        "HTTP requests overflow occured while fetching {}, delay is {} seconds.", 
+        resource_->url().c_str(),
+        delay_sec
+    );
+    handle_failed_load();
+}
+
+void HttpResourceHandler::handle_unknown_code(ResourceLoader::ResourceLoadResults& results, headers_t& headers) {
+    if (auto proc = processor_.lock())
+        proc->handle_resource_received(resource_);
+    LOG_WARNING_WITH_TAGS(
+        logging::handler_category, 
+        "Unhandled HTTP {} response code occurs while fetching resource {}.", 
+        headers.result_int(),
+        resource_->url().c_str()
+    );
+    handle_failed_load();
 }
 
 } // namespace crawler

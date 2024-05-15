@@ -49,26 +49,15 @@ size_t ResourceProcessor::total_in_work() const noexcept {
     return total_in_work_.load(std::memory_order_acquire);
 }
 
-void ResourceProcessor::handle_resource_received(const ResourcePtr& resource, bool success) {
-    if (repository_.expired()) {
-        LOG_WARNING_WITH_TAGS(
-            logging::processor_category, 
-            "Queue expired."
-        );
-        return;
-    }
-    repository_.lock()->reload_domain(*resource->header.domain, !success);
-}
-
 void ResourceProcessor::handle_new_resources(std::vector<ResourcePtr> resources) {
-    if (distributor_.expired()) {
+    if (auto distr = distributor_.lock()) {
+        distr->distribute_nowait(std::move(resources));
+    } else { 
         LOG_WARNING_WITH_TAGS(
             logging::processor_category, 
             "Distributor expired."
         );
-        return;
     }
-    distributor_.lock()->distribute_nowait(std::move(resources));
 }
 
 void ResourceProcessor::commit_resource(const IndexingResource& resource) {
@@ -79,15 +68,48 @@ void ResourceProcessor::send_to_index(const se::utils::CrawledResourceData& data
     bus_->send_resource(data);
 }
 
-void ResourceProcessor::on_handling_end(bool success) {
-    total_handled_.fetch_add(1, std::memory_order_acq_rel);
+void ResourceProcessor::on_handling_end(ResourcePtr resource, HandlingStatus status) {
     total_in_work_.fetch_sub(1, std::memory_order_acq_rel);
-    if (success)
-        total_succeed_handled_.fetch_add(1, std::memory_order_acq_rel);
+    switch(status) {
+        case HandlingStatus::partly_handled:  
+            context_.post([this, ptr = resource.release()](){
+                auto resource = ResourcePtr{ ptr };
+                if (auto repo = repository_.lock()) {
+                    auto url = resource->url();
+                    repo->push(
+                        ResourceLoader::resolve_name_with_cache(url), 
+                        std::move(resource)
+                    );
+                } else {
+                    LOG_WARNING_WITH_TAGS(
+                        logging::processor_category, 
+                        "Queue expired."
+                    );
+                }
+            });
+            break;
+        case HandlingStatus::handled_success:
+            total_succeed_handled_.fetch_add(1, std::memory_order_acq_rel);
+            [[fallthrough]];
+        case HandlingStatus::handled_failed:
+            total_handled_.fetch_add(1, std::memory_order_acq_rel);
+            if (auto distr = distributor_.lock()) {
+                distr->mark_as_handled(resource);
+            } else { 
+                LOG_WARNING_WITH_TAGS(
+                    logging::processor_category, 
+                    "Distributor expired."
+                );
+            }
+            break;
+        default:
+            break;
+    }
 }
 
 void ResourceProcessor::dispatch_service_data() {
-    if (repository_.expired()) {
+    auto repo = repository_.lock();
+    if (!repo) {
         LOG_WARNING_WITH_TAGS(
             logging::processor_category, 
             "Queue expired."
@@ -100,7 +122,7 @@ void ResourceProcessor::dispatch_service_data() {
             return;
     } while(!total_in_work_.compare_exchange_weak(cur, cur + 1));
     ResourcePtr ptr;
-    if (!repository_.lock()->try_pop(ptr)) {
+    if (!repo->try_pop(ptr)) {
         total_in_work_.fetch_sub(1, std::memory_order_acq_rel);
         return;
     }

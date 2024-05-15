@@ -43,6 +43,11 @@ void LogsCollector::stop() {
     bus_->stop_receiving_logs();
 }
 
+LogsCollector::~LogsCollector() {
+    bus_->stop();
+    bus_pool_.join_all();
+}
+
 bool LogsCollector::try_configure_db() {
     try {
         auto cfg = Config::db_config();
@@ -73,8 +78,8 @@ bool LogsCollector::try_configure_bus() {
     try {
         auto cfg = Config::bus_config("logger.bus");
         bus_ = std::make_unique<se::utils::AMQPBusMixin<LogsReceiver>>(cfg);
+        bus_->run();
         for(auto i = 0; i < Config::thread_pool("logger.bus"); ++i) {
-            bus_->run();
             bus_pool_.create_thread([this](){
                 cds::threading::Manager::attachThread();
                 bus_->attach();

@@ -8,7 +8,7 @@ template<typename Pred>
 struct FilterTransformer {
     void operator()(TokenSequence& seq, Language lang) { 
         Pred pred;
-        auto it = std::remove_if(seq.begin(), seq.end(), [&](auto& token){
+        auto it = std::remove_if(seq.begin(), seq.end(), [&](auto& token) {
             return pred(token, lang);
         });
         seq.erase(it, seq.end());

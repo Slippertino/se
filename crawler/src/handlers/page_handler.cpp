@@ -8,21 +8,17 @@ namespace crawler {
 PageHandler::PageHandler(private_token) : HttpResourceHandler({})
 { }
 
-void PageHandler::handle_http_resource(
-    ResourcePtr& resource, 
-    std::shared_ptr<ResourceProcessor>& processor,
-    HttpResults& results
-) {
+void PageHandler::handle_http_resource(HttpResults& results) {
     html_analyzer::HTMLAnalyzer analyzer{ results.body };
     if (!analyzer.is_valid()) {
         LOG_ERROR_WITH_TAGS(
             logging::handler_category, 
             "Errors occured while parsing HTML-document of {}.", 
-            resource->url().c_str()
+            resource_->url().c_str()
         );
         return;
     }
-    auto indexing_ptr = static_cast<IndexingResource*>(resource.get());
+    auto indexing_ptr = static_cast<IndexingResource*>(resource_.get());
     indexing_ptr->checksum = se::utils::sha256(results.body);
     auto page_info = analyzer.analyze<Automaton>();
     auto& enc = page_info.encoding;
@@ -35,7 +31,7 @@ void PageHandler::handle_http_resource(
             logging::handler_category, 
             "Unsupported encoding {} was met in resource {}.", 
             enc,
-            resource->url().c_str()
+            resource_->url().c_str()
         );
         return;
     }
@@ -43,28 +39,30 @@ void PageHandler::handle_http_resource(
         LOG_WARNING_WITH_TAGS(
             logging::handler_category, 
             "Incomplete HTML-document was provided by resource {}.", 
-            resource->url().c_str()
+            resource_->url().c_str()
         );
         return;        
     }
-    processor->commit_resource(*indexing_ptr);
-    if (page_info.can_follow) {
-        auto links = extract_links(resource, page_info);
-        processor->handle_new_resources(std::move(links));
+    if (auto proc = processor_.lock()) {
+        proc->commit_resource(*indexing_ptr);
+        if (page_info.can_follow) {
+            auto links = extract_links(resource_, page_info);
+            proc->handle_new_resources(std::move(links));
+        }
+        if (page_info.can_index) {
+            proc->send_to_index(
+                se::utils::CrawledResourceData {
+                    resource_->url(),
+                    std::move(results.body)
+                }
+            );
+        }
     }
-    if (page_info.can_index) {
-        processor->send_to_index(
-            se::utils::CrawledResourceData {
-                resource->url(),
-                std::move(results.body)
-            }
-        );
-    }
-    confirm_success_handling();
+    set_handling_status(HandlingStatus::handled_success);
     LOG_INFO_WITH_TAGS(
         logging::handler_category, 
         "Successfully handled PAGE file with URL: {}.", 
-        resource->url().c_str()
+        resource_->url().c_str()
     );
 }
 

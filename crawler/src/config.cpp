@@ -32,7 +32,8 @@ std::string Config::logging_time_pattern(const std::string& key) {
 
 DbConfig Config::db_config() {
     return DbConfig{
-        boost::url{ connection_string("crawler.db") }
+        boost::url{ connection_string("crawler.db") },
+        get<size_t>("crawler.db.pool_size")
     };
 }
     

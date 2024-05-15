@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include <algorithm>
 #include <queue>
-#include <regex>
+#include <boost/regex.hpp>
 #include <concepts>
 #include <gumbo.h>
 #include <error.h>
@@ -24,13 +24,13 @@ public:
     bool is_valid() const;
     
     [[nodiscard]] std::string crop_content(
-        const std::initializer_list<std::string> &forbidden_tags = {},
+        const std::vector<std::string> &forbidden_tags = {},
         bool with_comments = true,
         bool with_whitespaces = true
     );
 
     template<class TAutomaton, std::derived_from<PageInfo> InfoType = PageInfo>
-    [[nodiscard]] InfoType analyze(const std::initializer_list<std::string> &forbidden_tags = {}) {
+    [[nodiscard]] InfoType analyze(const std::vector<std::string> &forbidden_tags = {}) {
         auto black_list = get_tags_types(forbidden_tags);
         InfoType res;
         TAutomaton am{res};
@@ -49,12 +49,12 @@ public:
 private:
     static bool is_node_element(const GumboNode* node);
     static bool is_element_empty(const GumboNode* node);
-    static std::unordered_set<GumboTag> get_tags_types(const std::initializer_list<std::string> &forbidden_tags);
+    static std::unordered_set<GumboTag> get_tags_types(const std::vector<std::string> &forbidden_tags);
 
     void exec_bfs(const std::function<void(const GumboNode*, bool&, bool&)> &callback);
 
 private:
-    static const std::regex html_pattern_;
+    static const boost::regex html_pattern_;
 
 private:
     std::string content_;

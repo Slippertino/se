@@ -15,6 +15,7 @@ struct AMQPBusMessageConfig {
 };
 
 struct AMQPBusConfig {
+    size_t pool_size;
     boost::url url;
     std::unordered_map<std::string, AMQPBusMessageConfig> messages;
     std::unordered_map<std::string, std::string> queues;

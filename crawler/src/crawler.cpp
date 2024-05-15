@@ -58,17 +58,29 @@ void Crawler::dispatch_service_data() {
     }
 
     auto dist_group_size = distributor_->current_crawling_group_size();
+    auto dist_size = distributor_->size();
     auto queue_size = queue_->size();
+    auto output_size = queue_->output_size();
     auto processor_size = processor_->total_in_work();
 
     LOG_INFO_WITH_TAGS(
         se::utils::logging::main_category,
-        "State: queue size = {}, total_handled = {}, success_handled = {}, now in work = {}",
+        "State: queue size = {}, output_size = {}, dist = {}, total_handled = {}, success_handled = {}, now in work = {}",
         queue_size,
+        output_size,
+        dist_size,
         processor_->total_handled(),
         processor_->total_succeed_handled(),
         processor_size
     );
+
+    if (queue_->is_full()) {
+        LOG_WARNING_WITH_TAGS(
+            se::utils::logging::main_category,
+            "Size limit of queue was reached: {}", 
+            queue_size
+        );
+    }
 
     if (!dist_group_size && !queue_size && !processor_size) {
         LOG_WARNING_WITH_TAGS(
@@ -110,11 +122,12 @@ bool Crawler::try_configure_bus() {
     try {
         auto cfg = Config::bus_config("crawler.bus");
         bus_ = std::make_shared<se::utils::AMQPBusMixin<IExternalBus>>(cfg);
+        bus_->run();
         for(auto i = 0; i < Config::thread_pool("crawler.bus"); ++i) {
-            bus_->run();
             bus_group_.create_thread([this](){
                 cds::threading::Manager::attachThread();
                 bus_->attach();
+                cds::threading::Manager::detachThread();
             });
         }
         LOG_INFO_WITH_TAGS(se::utils::logging::main_category, "Configured bus.");
@@ -137,6 +150,7 @@ bool Crawler::try_configure_queue() {
                 cds::threading::Manager::attachThread();
                 queue_->run();
                 queue_->attach();
+                cds::threading::Manager::detachThread();
             });
         }
         LOG_INFO_WITH_TAGS(se::utils::logging::main_category, "Configured queue.");
@@ -159,6 +173,7 @@ bool Crawler::try_configure_distributor() {
                 cds::threading::Manager::attachThread();
                 distributor_->run();
                 distributor_->attach();
+                cds::threading::Manager::detachThread();
             });
         }
         LOG_INFO_WITH_TAGS(se::utils::logging::main_category, "Configured distributor.");
@@ -182,6 +197,7 @@ bool Crawler::try_configure_processor() {
                 if (!i)
                     processor_->run();
                 processor_->attach();
+                cds::threading::Manager::detachThread();
             });
         }
         LOG_INFO_WITH_TAGS(se::utils::logging::main_category, "Configured processor.");

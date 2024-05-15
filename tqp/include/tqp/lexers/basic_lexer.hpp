@@ -11,7 +11,10 @@ public:
     TokenSequence operator()(const std::string& text, Language lang);
 
 private:
-    static inline const std::string white_symbols_string = " \t\r,";
+    static bool is_number(const icu::UnicodeString& text);
+
+private:
+    static inline const std::string white_symbols_string = " \n\t\r,";
     static inline const std::unordered_set<char> white_symbols_set = std::unordered_set<char>(
         white_symbols_string.begin(), 
         white_symbols_string.end()

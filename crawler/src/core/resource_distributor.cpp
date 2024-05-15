@@ -17,8 +17,13 @@ ResourceDistributor::ResourceDistributor(
     max_pages_batch_size_{  Config::from_service<size_t>("distributor", "max_pages_batch_size") },
     data_{ data },
     repository_{ repository },
+    resolver_ { get_context() },
     headers_{ group_size_, 1 }
 { }
+
+size_t ResourceDistributor::size() const noexcept {
+    return async_count_.load(std::memory_order_acquire);
+}
 
 size_t ResourceDistributor::current_crawling_group_size() const noexcept {
     return headers_.size();
@@ -33,16 +38,28 @@ void ResourceDistributor::distribute(ResourcePtr resource) {
     if (upd && upd->fin)
         return;
     if (upd)
-        distribute_no_check(ResourcePtr{ upd.release() });
-    else
-        distribute_no_check(std::move(resource));
+        resource.reset(upd.release());
+    auto str = std::string(resource->url().c_str());
+    auto hash = std::hash<std::string>{}(str);
+    if (used_resources_.contains(hash))
+        return;
+    distribute_no_check(std::move(resource));
+    used_resources_.insert(str);
 }
 
 void ResourceDistributor::distribute_nowait(std::vector<ResourcePtr> resources) {
     context_.post([this, ress = std::move(resources)]() mutable {
+        async_count_.fetch_add(1, std::memory_order_release);
         for(auto& r : ress)
             distribute(std::move(r));
+        async_count_.fetch_sub(1, std::memory_order_release);
     });
+}
+
+void ResourceDistributor::mark_as_handled(const ResourcePtr& resource) {
+    auto str = std::string(resource->url().c_str());
+    auto hash = std::hash<std::string>{}(str);
+    used_resources_.erase(hash);
 }
 
 ResourceDistributor::~ResourceDistributor() {
@@ -104,21 +121,31 @@ void ResourceDistributor::add_new_headers() {
 }
 
 void ResourceDistributor::distribute_no_check(ResourcePtr resource) {
-    if (repository_.expired()) {
-        LOG_WARNING_WITH_TAGS(
-            logging::distributor_category, 
-            "Queue expired."
-        );
-        return;
-    }    
-    auto name = resource->url().c_str();
-    if (!repository_.lock()->try_push(std::move(resource))) {
-        LOG_ERROR_WITH_TAGS(
-            logging::distributor_category, 
-            "Not managed to push resource {} to queue.", 
-            name
-        );        
-    }    
+    auto url = resource->url();
+    resolver_.load(url, [this, ptr = resource.release()](auto) {
+        async_count_.fetch_add(1, std::memory_order_release);
+        auto resource = ResourcePtr{ ptr };
+        auto repo = repository_.lock();
+        if (!repo) {
+            LOG_WARNING_WITH_TAGS(
+                logging::distributor_category, 
+                "Queue expired."
+            );
+            return;
+        }    
+        auto url = resource->url();
+        auto ip = ResourceLoader::resolve_name_with_cache(url);
+        if (ip.empty()) {
+            LOG_ERROR_WITH_TAGS(
+                logging::distributor_category, 
+                "Not managed to resolve ip of resource {} for adding to queue", 
+                url.c_str()
+            );        
+            return;        
+        }
+        repo->push(ip, std::move(resource));
+        async_count_.fetch_sub(1, std::memory_order_release);
+    });
 }
 
 } // namespace crawler

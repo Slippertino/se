@@ -6,8 +6,10 @@ namespace crawler {
 
 ResourcesRepository::ResourcesRepository() : 
     Service(false, false), 
-    max_resources_count_  { Config::from_service<size_t>("queue", "max_size")              },
-    domain_fetch_delay_ms_{ Config::from_service<size_t>("queue", "domain_fetch_delay_ms") }
+    max_resources_count_  { Config::from_service<size_t>("queue", "max_size")            },
+    group_fetch_delay_ms_{ Config::from_service<size_t>("queue", "group_fetch_delay_ms") },
+    count_{ 0 },
+    free_space_notifier_{ get_context() }
 { }
 
 size_t ResourcesRepository::size() const {
@@ -18,36 +20,35 @@ size_t ResourcesRepository::output_size() const {
     return output_queue_.size();
 }
 
-size_t ResourcesRepository::domain_size(const std::string& domain) {
-    return domains_.get(domain)->second.queue.size();
+size_t ResourcesRepository::group_size(const std::string& group_name) {
+    return groups_.get(group_name)->second.queue.size();
 }
 
 bool ResourcesRepository::is_full() const {
     return size() >= max_resources_count_;
 }
 
-bool ResourcesRepository::try_push(ResourcePtr rptr) {
-    const auto& domain = *rptr->header.domain;
-    if (!domains_.contains(domain)) {
-        bool res = domains_.insert_with(
-            domain,
-            [this](auto& v) {
-                v.second.delayed.store(true, std::memory_order_release);
-                v.second.timer_ptr = std::make_unique<boost::asio::high_resolution_timer>(get_context());
-            }
-        );
-        if (!res)
-            return false;
+void ResourcesRepository::push(const std::string& group_name, ResourcePtr rptr) {
+    if (!groups_.contains(group_name)) {
+        bool res{ false };
+        while(!res) {
+            res = groups_.insert_with(
+                group_name,
+                [this](auto& v) {
+                    v.second.delayed.store(true, std::memory_order_release);
+                    v.second.timer_ptr = std::make_unique<boost::asio::high_resolution_timer>(get_context());
+                }
+            );
+            std::this_thread::yield();
+        }
     }
     std::string name = rptr->url().c_str();
-    push_impl(rptr.release());
+    push_impl(group_name, rptr.release());
     LOG_TRACE_L1_WITH_TAGS(
         logging::queue_category, 
         "Added to queue: {}.", 
         name
     );
-    count_.fetch_add(1, std::memory_order_acq_rel);
-    return true;
 }
 
 bool ResourcesRepository::try_pop(ResourcePtr& ptr) {
@@ -60,35 +61,19 @@ bool ResourcesRepository::try_pop(ResourcePtr& ptr) {
             "Removed from queue: {}.", 
             ptr->url().c_str()
         );
-        auto cur = count_.fetch_sub(1, std::memory_order_acq_rel);
-        if (cur < max_resources_count_) 
-            full_cv_.notify_one();
+        if (count_.load(std::memory_order_acquire) < max_resources_count_) 
+            free_space_notifier_.async_notify_one();
     }
     return res;
 }
 
-void ResourcesRepository::reload_domain(const std::string& domain, bool forced) {
-    auto ptr = domains_.get(domain);
-    if (ptr.empty())
-        return;
-    auto &state = ptr->second;
-    if (forced) {
-        handle_expired_reload(domain, {});
-        return;
-    }
-    state.delayed.store(false, std::memory_order_release);
-    state.timer_ptr->expires_from_now(domain_fetch_delay_ms_);
-    state.timer_ptr->async_wait(std::bind(&ResourcesRepository::handle_expired_reload, this, domain, std::placeholders::_1));
-}
-
 void ResourcesRepository::reset() {
-    std::lock_guard locker{ full_mutex_ };
     while(!output_queue_.empty()) {
         details::PackedResource cur;
         if (output_queue_.pop(cur))
             delete cur.resource;
     }
-    for(auto& dm : domains_) {
+    for(auto& dm : groups_) {
         auto& q = dm.second.queue;
         while(!q.empty()) {
             details::PackedResource cur;
@@ -96,23 +81,14 @@ void ResourcesRepository::reset() {
                 delete cur.resource;
         }
     }
-    domains_.clear();
+    groups_.clear();
 }
 
 void ResourcesRepository::handle_expired_reload(
-    const std::string& domain,
-    const boost::system::error_code& ec
+    const std::string& group_name,
+    const boost::system::error_code&
 ) {
-    if (ec) {
-        LOG_ERROR_WITH_TAGS(
-            logging::queue_category, 
-            "Queue's domain {} error occured on reload: {}", 
-            domain,
-            ec.message()
-        );
-        return;
-    }
-    auto ptr = domains_.get(domain);
+    auto ptr = groups_.get(group_name);
     if (ptr.empty()) return;
 
     auto& state = ptr->second;
@@ -120,15 +96,15 @@ void ResourcesRepository::handle_expired_reload(
     if (!state.queue.pop(res)) 
         state.delayed.store(true, std::memory_order_release);
     else
-        push_impl(res.resource, true);
+        push_impl(group_name, res.resource, true);
 }
 
-void ResourcesRepository::push_impl(Resource* rptr, bool output) {
+void ResourcesRepository::push_impl(const std::string& group_name, Resource* rptr, bool output) {
     if (output) {
         push_to_output(rptr);
         return;
     }
-    auto ptr_state = domains_.get(*rptr->header.domain);
+    auto ptr_state = groups_.get(group_name);
     if (ptr_state.empty()) return;
     auto& state = ptr_state->second;
     if (state.delayed.load(std::memory_order_acquire)) {
@@ -137,14 +113,27 @@ void ResourcesRepository::push_impl(Resource* rptr, bool output) {
         return;
     }
     if (is_full()) {
-        LOG_WARNING_WITH_TAGS(
-            logging::queue_category, 
-            "Size limit of queue was reached: {}", 
-            count_.load(std::memory_order_relaxed)
-        );
-        std::unique_lock locker{ full_mutex_ };
-        full_cv_.wait(locker, [&]() { return !is_full(); });
+        free_space_notifier_.async_wait([this, rptr, &state](auto) {
+            push_with_overflow(rptr, state);
+        });
     }
+    else
+        push_to_group(rptr, state);
+}
+
+void ResourcesRepository::push_with_overflow(Resource* rptr, ResourcesGroupState& state) {
+    if (!is_full()) {
+        push_to_group(rptr, state);
+    }
+    else {
+        free_space_notifier_.async_wait([this, rptr, &state](auto) {
+            push_with_overflow(rptr, state);
+        });
+    }
+}
+
+void ResourcesRepository::push_to_group(Resource* rptr, ResourcesGroupState& state) {
+    count_.fetch_add(1, std::memory_order_acq_rel);
     state.queue.push(details::PackedResource(rptr));
 }
 

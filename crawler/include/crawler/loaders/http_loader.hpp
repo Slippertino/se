@@ -34,18 +34,6 @@ private:
         context_.post(std::bind(handler, std::move(res)));
     }
 
-    static std::string resolve_name_with_cache(const boost::url& url) {
-        return get_ip(DNSCache::instance()[url.host()]);;
-    }
-
-    static std::string get_ip(const dns_result_t& ips) {
-        const int sz = ips.size();
-        if (!sz)
-            return "";
-        const int num = std::experimental::randint(0, sz - 1);
-        return ips[num];
-    }
-
     void fill_request(const boost::url& url) {
         request_.version(11);
         request_.method(boost::beast::http::verb::get);

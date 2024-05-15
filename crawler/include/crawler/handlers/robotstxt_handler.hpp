@@ -12,16 +12,8 @@ public:
     RobotsTxtHandler(private_token);
 
 protected:
-    void handle_failed_load(
-        ResourcePtr& resource, 
-        std::shared_ptr<ResourceProcessor>& processor        
-    ) override;
-    
-    void handle_http_resource(
-        ResourcePtr& resource, 
-        std::shared_ptr<ResourceProcessor>& processor,
-        HttpResults& results
-    ) override;
+    void handle_failed_load() override;
+    void handle_http_resource(HttpResults& results) override;
 };
 
 } // namespace crawler

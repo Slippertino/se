@@ -6,22 +6,19 @@ namespace se {
 namespace crawler {
 
 ResourceHandler::ResourceHandler(ResourceHandler::private_token) :
-    success_{ false }
+    status_{ HandlingStatus::handled_failed }
 { }
-
-void ResourceHandler::confirm_success_handling() {
-    success_ = true;
-}
 
 void ResourceHandler::handle(
     ResourcePtr resource, 
     std::shared_ptr<ResourceProcessor> processor
 ) {
     processor_ = processor;
+    resource_ = std::move(resource);
     auto& context = processor->get_context();
-    const auto& type = *resource->header.type;
+    const auto& type = *resource_->header.type;
     loader_ = ResourceLoadersFactory::get_loader(
-        *resource->header.type, 
+        *resource_->header.type, 
         context
     );
     if (!loader_) {
@@ -32,33 +29,32 @@ void ResourceHandler::handle(
         );
         return;
     }
-    if (resource->is_indexing && 
-        !check_permissions(resource, processor)) {
-        handle_no_permissions(resource, processor);
-        processor->handle_resource_received(resource, false);
+    if (resource_->is_indexing && 
+        !check_permissions()) {
+        handle_no_permissions();
+        processor->handle_resource_received(resource_, false);
         return;
     }
-    auto url = resource->url();
+    auto url = resource_->url();
     loader_->load(
         url, 
-        [hndlr = shared_from_this(), resource = resource.release(), processor](auto results) {
-            auto res = ResourcePtr{ resource };
-            hndlr->handle_resource(res, processor, results);
+        [hndlr = shared_from_this()](auto results) {
+            hndlr->handle_resource(std::move(results));
         }
     );
 }
 
-bool ResourceHandler::check_permissions(
-    const ResourcePtr& resource,
-    std::shared_ptr<class ResourceProcessor>& processor
-) const {
+void ResourceHandler::set_handling_status(HandlingStatus status) {
+    status_ = status;
+}
+
+bool ResourceHandler::check_permissions() const {
     return true;
 } 
 
 ResourceHandler::~ResourceHandler() {
-    if (!processor_.expired()) {
-        processor_.lock()->on_handling_end(success_);
-    }
+    if (auto proc = processor_.lock())
+        proc->on_handling_end(std::move(resource_), status_);
 }
 
 } // namespace crawler

@@ -1,4 +1,5 @@
 #include <seutils/config/config.hpp>
+#include <iostream>
 
 namespace se {
 
@@ -7,6 +8,7 @@ namespace utils {
 AMQPBusConfig Config::bus_config(const std::string& path) {
     auto bus_root = node_by_path(path);
     se::utils::AMQPBusConfig config;
+    config.pool_size = bus_root["pool_size"].as<size_t>();
     config.url = boost::url { 
         bus_root["connection_string"].as<std::string>() 
     };

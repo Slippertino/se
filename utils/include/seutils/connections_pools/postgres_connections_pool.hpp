@@ -4,25 +4,18 @@
 #include <string>
 #include <pqxx/pqxx>
 #include <boost/url.hpp>
-#include "../threaded_resource.hpp"
+#include "connections_pool.hpp"
 
 namespace se {
 
 namespace utils {
 
-class PostgresConnectionsPool final : public ThreadedResource<PostgresConnectionsPool, pqxx::connection> {
+class PostgresConnectionsPool final : public ConnectionsPool<PostgresConnectionsPool, pqxx::connection> {
 public:
     PostgresConnectionsPool () = delete;
-    PostgresConnectionsPool (const boost::url& server);
+    PostgresConnectionsPool(size_t size, const boost::url& server);
 
-    template<std::same_as<pqxx::connection> R>
-    pqxx::connection create_thread_resource() {
-        auto conn = pqxx::connection{ server_url_.c_str() };
-        for(const auto& pq : prepared_queries_)
-            conn.prepare(pq.first, pq.second);
-        return conn;
-    }
-
+    std::unique_ptr<pqxx::connection> create_connection() const;
     PostgresConnectionsPool& add_prepared_query(const std::string& alias, const std::string& query);
 
 private:

@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <memory>
+#include <crawler/handlers/handling_status.hpp>
 #include <crawler/core/resource.hpp>
 #include <crawler/loaders/loaders_factory.hpp>
 #include <crawler/logging/logging.hpp>
@@ -22,6 +23,7 @@ public:
         return std::make_shared<Handler>(private_token{});
     }
 
+    void set_handling_status(HandlingStatus status);
     void confirm_success_handling();
 
     void handle(
@@ -32,25 +34,18 @@ public:
     virtual ~ResourceHandler();
 
 protected:
-    virtual bool check_permissions(
-        const ResourcePtr& resource,
-        std::shared_ptr<class ResourceProcessor>& processor
-    ) const;
-
-    virtual void handle_no_permissions(
-        const ResourcePtr& resource,
-        std::shared_ptr<class ResourceProcessor>& processor
-    ) = 0;
-
+    virtual bool check_permissions() const;
+    virtual void handle_no_permissions() = 0;
     virtual void handle_resource(
-        ResourcePtr& resource, 
-        std::shared_ptr<class ResourceProcessor> processor, 
         ResourceLoader::ResourceLoadResults results
     ) = 0;
 
-private:
-    bool success_;
+protected:
     std::weak_ptr<class ResourceProcessor> processor_;
+    ResourcePtr resource_;
+
+private:
+    HandlingStatus status_;
     ResourceLoadersFactory::ResourceLoaderPtr loader_;
 };
 

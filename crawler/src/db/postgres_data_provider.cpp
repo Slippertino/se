@@ -6,7 +6,7 @@ namespace crawler {
 
 PostgresDataProvider::PostgresDataProvider(const DbConfig& config) : 
     config_ { config },
-    connections_{ config.connection_url }
+    connections_{ config.pool_size, config.connection_url }
 { 
     connections_
     .add_prepared_query(
@@ -28,17 +28,18 @@ PostgresDataProvider::PostgresDataProvider(const DbConfig& config) :
 }
 
 bool PostgresDataProvider::enabled() {
-    auto conn = connections_.create_thread_resource<pqxx::connection>();
+    auto conn_holder = connections_.get_connection();
+    auto& conn = conn_holder.connection();
     auto res = conn.is_open();
-    if (conn.is_open())
-        conn.close();
     return res;
 }
 
 std::vector<ResourceHeader> PostgresDataProvider::get_unhandled_headers_top(int limit) {
-    auto& con = get_connection();
     try {
-        pqxx::work session{ con };
+        auto conn_holder = connections_.get_connection();
+        auto& con = conn_holder.connection();
+        validate_connection(con);
+        pqxx::read_transaction session{ con };
         auto result = session.exec_prepared("get_unhandled_domains_top", limit);
         std::vector<ResourceHeader> out;
         out.reserve(result.size());
@@ -62,9 +63,11 @@ std::vector<ResourceHeader> PostgresDataProvider::get_unhandled_headers_top(int 
 }
 
 std::vector<IndexingResourcePtr> PostgresDataProvider::get_unhandled_top_by_header(const ResourceHeader& header, int limit) {
-    auto& con = get_connection();
     try {
-        pqxx::work session{ con };
+        auto conn_holder = connections_.get_connection();
+        auto& con = conn_holder.connection();
+        validate_connection(con);
+        pqxx::read_transaction session{ con };
         auto result = session.exec_prepared("get_unhandled_resources_top_by_domain", *header.type, *header.domain, limit);
         std::vector<IndexingResourcePtr> out;
         out.reserve(result.size());
@@ -87,9 +90,11 @@ std::vector<IndexingResourcePtr> PostgresDataProvider::get_unhandled_top_by_head
 }
 
 IndexingResourcePtr PostgresDataProvider::get_resource(const ResourceHeader& header, const std::string& uri) {
-    auto& con = get_connection();
     try {
-        pqxx::work session{ con };
+        auto conn_holder = connections_.get_connection();
+        auto& con = conn_holder.connection();
+        validate_connection(con);
+        pqxx::read_transaction session{ con };
         auto result = session.exec_prepared("get_resource", *header.type, *header.domain, uri);  
         if (result.empty())
             return nullptr;
@@ -113,8 +118,10 @@ IndexingResourcePtr PostgresDataProvider::get_resource(const ResourceHeader& hea
 }
 
 void PostgresDataProvider::upload_resource(const IndexingResource& resource) {
-    auto& con = get_connection();
-    try {
+    try {        
+        auto conn_holder = connections_.get_connection();
+        auto& con = conn_holder.connection();
+        validate_connection(con);
         pqxx::work session{ con };
         session.exec_prepared("upload_resource", 
             *resource.header.type, 
@@ -135,8 +142,10 @@ void PostgresDataProvider::upload_resource(const IndexingResource& resource) {
 }
 
 void PostgresDataProvider::finalize() {
-    auto& con = get_connection();
     try {
+        auto conn_holder = connections_.get_connection();
+        auto& con = conn_holder.connection();
+        validate_connection(con);
         pqxx::work session{ con };
         session.exec("CALL reset()");
         session.commit();
@@ -150,17 +159,10 @@ void PostgresDataProvider::finalize() {
     }     
 }
 
-auto PostgresDataProvider::get_connection() -> pqxx::connection& {
-    auto& con = connections_.get_thread_resource();
-    test_connection(con);
-    return con;
-}
-
-bool PostgresDataProvider::test_connection(pqxx::connection& con) {
+void PostgresDataProvider::validate_connection(pqxx::connection& con) {
     auto res = con.is_open();
     if (!res)
-        LOG_ERROR_WITH_TAGS(se::utils::logging::db_category, "Database connection is not estabilished.");
-    return res;
+        throw std::runtime_error("Database connection is not estabilished.");
 }
 
 } // namespace crawler

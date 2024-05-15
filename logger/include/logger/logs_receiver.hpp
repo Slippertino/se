@@ -68,12 +68,19 @@ public:
 
 protected:
     virtual void send_data(const std::string& type, std::string data, bool log_on_error = true) = 0;
-    virtual void start_receiving_data(
+    virtual void receive_data(        
         const std::string& key, 
         std::function<void(const char*, uint64_t)> on_success, 
         std::function<void(const char*)> on_fail
     ) = 0;
+    virtual void start_receiving_data(
+        const std::string& queue, 
+        std::function<void(const char*, uint64_t)> on_success, 
+        std::function<void(const char*)> on_fail
+    ) = 0;
+    virtual void resume_receiving_data(const std::string& key) = 0;
     virtual void stop_receiving_data(const std::string& key) = 0;
+    virtual void pause_receiving_data(const std::string& key) = 0;
 
 private:
     void read_batch(const char* message, uint64_t len);

@@ -22,6 +22,8 @@ find_package(quill CONFIG REQUIRED)
 set(BUILD_TEST OFF)
 add_subdirectory(${SEUTILS_THIRD_PARTY}/libpqxx)
 add_subdirectory(${SEUTILS_THIRD_PARTY}/yaml-cpp)
+add_subdirectory(${SEUTILS_THIRD_PARTY}/libcds)
+target_compile_options(cds-s INTERFACE -std=c++20)
 
 file(GLOB_RECURSE SOURCES 
     ${CMAKE_CURRENT_LIST_DIR}/include/* 
@@ -39,4 +41,5 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     LibArchive::LibArchive
     OpenSSL::Crypto
     yaml-cpp::yaml-cpp
+    cds-s
 )

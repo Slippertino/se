@@ -16,10 +16,9 @@ public:
 
     bool enabled();
     void load_logs_batch(const std::vector<se::utils::LogData>& logs);
-
+    
 private:
-    auto get_connection() -> pqxx::connection&;
-    bool test_connection(pqxx::connection& con);
+    void validate_connection(pqxx::connection& con);
 
 private:
     DbConfig config_;

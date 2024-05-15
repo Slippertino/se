@@ -18,7 +18,7 @@ using MyAutomaton = html_analyzer::CombinedAutomaton<
     html_analyzer::EncodingAutomaton,
     html_analyzer::LanguageAutomaton,
     html_analyzer::DescriptionAutomaton,
-    html_analyzer::TextAutomaton<decltype([](GumboTag){ return 1.0; })>,
+    html_analyzer::TextAutomaton<decltype([](std::string){ return 1.0; })>,
     html_analyzer::KeywordsAutomaton,
     html_analyzer::LinkAutomaton<true>,
     html_analyzer::TitleAutomaton,
@@ -29,6 +29,7 @@ int main(int argc, char** argv) {
     auto content = get_content(argv[1]);
     html_analyzer::HTMLAnalyzer obj{content};
     auto res = obj.analyze<MyAutomaton>();
+    std::cout << obj.is_valid() << "\n";
     for(const auto& ex : res.excerpts) 
         std::cout << ex.pos << " " << ex.lang << " " << ex.rank << " " << ex.text << "\n";
     return 0;

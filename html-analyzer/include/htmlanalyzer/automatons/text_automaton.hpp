@@ -40,7 +40,7 @@ protected:
         auto lang = get_from_lang(node);
         if (!lang.empty())
             state.lang = extract_lang(lang);
-        state.rank = RankerType{}(tag);
+        state.rank = RankerType{}(gumbo_normalized_tagname(tag));
         if (states_.contains(parent)) {
             const auto& pstate = states_.at(parent);
             if (state.lang.empty())
@@ -63,7 +63,7 @@ protected:
         else {
             const auto& state = states_.at(parent);
             text.lang = state.lang;
-            text.rank = state.rank;
+            text.rank = std::max(state.rank, 1.0);
         }
         info_.excerpts.push_back(std::move(text));
     }

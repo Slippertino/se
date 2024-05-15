@@ -14,11 +14,7 @@ public:
     SitemapHandler(private_token);
 
 protected:
-    void handle_http_resource(
-        ResourcePtr& resource, 
-        std::shared_ptr<ResourceProcessor>& processor,
-        HttpResults& results
-    ) override;
+    void handle_http_resource(HttpResults& results) override;
 
 private:
     static void extract_resources(

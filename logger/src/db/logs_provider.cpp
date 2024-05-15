@@ -6,7 +6,7 @@ namespace logger {
 
 LogsProvider::LogsProvider(const DbConfig& config) : 
     config_ { config },
-    connections_{ config.connection_url }
+    connections_{ config.pool_size, config.connection_url }
 { 
     connections_.add_prepared_query(
         "add_logs",    
@@ -15,16 +15,16 @@ LogsProvider::LogsProvider(const DbConfig& config) :
 }
 
 bool LogsProvider::enabled() {
-    auto conn = connections_.create_thread_resource<pqxx::connection>();
+    auto conn_holder = connections_.get_connection();
+    auto& conn = conn_holder.connection();
     auto res = conn.is_open();
-    if (conn.is_open())
-        conn.close();
     return res;
 }
 
 void LogsProvider::load_logs_batch(const std::vector<se::utils::LogData>& logs) {
-    auto& con = get_connection();
     try {
+        auto conn_holder = connections_.get_connection();
+        auto& con = conn_holder.connection();
         pqxx::work session{ con };
         session.exec_prepared("add_logs", logs);
         session.commit();
@@ -38,17 +38,10 @@ void LogsProvider::load_logs_batch(const std::vector<se::utils::LogData>& logs) 
     }    
 }
 
-auto LogsProvider::get_connection() -> pqxx::connection& {
-    auto& con = connections_.get_thread_resource();
-    test_connection(con);
-    return con;
-}
-
-bool LogsProvider::test_connection(pqxx::connection& con) {
+void LogsProvider::validate_connection(pqxx::connection& con) {
     auto res = con.is_open();
     if (!res)
-        LOG_ERROR_WITH_TAGS(se::utils::logging::db_category, "Database connection is not estabilished.");
-    return res;
+        throw std::runtime_error("Database connection is not estabilished.");
 }
 
 } // namespace logger

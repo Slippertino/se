@@ -5,7 +5,6 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
-#include <regex>
 #include <boost/bimap.hpp>
 #include <boost/assign.hpp>
 #include <cld3/src/nnet_language_identifier.h>

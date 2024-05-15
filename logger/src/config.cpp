@@ -10,7 +10,8 @@ void Config::load(const std::string& path) {
 
 DbConfig Config::db_config() {
     return DbConfig{
-        boost::url{ connection_string("logger.db") }
+        boost::url{ connection_string("logger.db") },
+        get<size_t>("logger.db.pool_size")
     };
 }
     

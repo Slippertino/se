@@ -33,6 +33,18 @@ public:
         resolver_{ context }
     { }
 
+    static std::string resolve_name_with_cache(const boost::url& url) {
+        return get_ip(DNSCache::instance()[url.host()]);;
+    }
+
+    static std::string get_ip(const dns_result_t& ips) {
+        const int sz = ips.size();
+        if (!sz)
+            return "";
+        const int num = std::experimental::randint(0, sz - 1);
+        return ips[num];
+    }
+
     void load(boost::url url, content_handler_t handler, bool with_resolving = true) {
         context_.post([url = std::move(url), this, handler = std::move(handler), with_resolving](){
             const std::string host{ url.encoded_host() };
@@ -46,7 +58,9 @@ public:
     virtual ~ResourceLoader() { }
 
 protected:
-    virtual void load_resolved(boost::url url, const content_handler_t& handler) = 0;
+    virtual void load_resolved(boost::url url, const content_handler_t& handler) {
+        handler(ResourceLoadResults{});
+    }
 
 private:
     void post_loading_with_resolve(boost::url url, content_handler_t handler) {

@@ -1,0 +1,68 @@
+indexer:
+  component_name: Indexer
+  options:
+    resources_capacity: 5000
+    loader:
+      batch_size: 50
+      speed: 1
+    resources_ranking:
+      teleport_probability: 0.5
+      ranking_iterations_count: 100
+    champion_lists:
+      size: 20
+      threshold: 0.1
+    primary_indexer:
+      thread_pool: 2
+      compression_type: lzma
+      min_lexem_size: 3
+      max_lexem_size: 50
+      tags:
+        skip:
+          - style
+          - script
+          - noscript
+          - iframe
+          - footer
+          - link
+          - button
+          - form
+        weights:
+          description: 15
+          keywords: 15
+          title: 10
+          h1: 6
+          h2: 5
+          h3: 4
+          h4: 3
+          h5: 2
+          h6: 1
+          article: 5
+          section: 4
+          a: 4
+          nav: 3
+          table: 2
+  db:
+    pool_size: 5
+    connection_string: postgresql://admin:1234@localhost:5432/index
+  bus:
+    pool_size: 3
+    thread_pool: 3
+    connection_string: amqp://guest:guest@localhost:5672/
+    queues:
+      index: pages_to_index
+    messages:
+      logging:
+        enabled: false
+        exchange: se
+        routing_key: log
+        max_batch_size: 10
+        max_batch_volume: 10240
+        compression_type: lzma
+  logging:
+    lvl: info
+    log_formats:
+      console: "%(time) [%(thread_id)] %(log_level) %(custom_tags) - %(message)"
+      bus: "[%(thread_id)]\t%(message)"
+    time_formats:
+      console: "%Y-%m-%d %H:%M:%S"
+      bus: "%Y-%m-%d %H:%M:%S"

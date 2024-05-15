@@ -4,9 +4,11 @@ logger:
     reduce_ratio: 0.5
     periodicity_ms: 500
   db:
+    pool_size: 3
     connection_string: postgresql://admin:1234@localhost:5432/logging
   bus:
-    thread_pool: 3
+    pool_size: 1
+    thread_pool: 2
     connection_string: amqp://guest:guest@localhost:5672/
     queues:
       logging: logs

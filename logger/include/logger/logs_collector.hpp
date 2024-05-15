@@ -36,6 +36,8 @@ public:
     void setup();
     void stop() override;
 
+    ~LogsCollector();
+
 private:
     bool try_configure_db();
     bool try_configure_bus();

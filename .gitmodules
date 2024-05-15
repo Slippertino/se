@@ -34,3 +34,9 @@
 [submodule "tqp/third-party/cld3"]
 	path = tqp/third-party/cld3
 	url = https://github.com/google/cld3
+[submodule "tqp/third-party/icu-cmake"]
+	path = tqp/third-party/icu-cmake
+	url = https://github.com/viaduck/icu-cmake
+[submodule "utils/third-party/libcds"]
+	path = utils/third-party/libcds
+	url = https://github.com/khizmax/libcds

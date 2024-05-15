@@ -13,8 +13,6 @@ set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost COMPONENTS system thread atomic date_time url serialization REQUIRED)
-add_subdirectory(${LOGGER_THIRD_PARTY}/libcds)
-target_compile_options(cds-s INTERFACE -std=c++20)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../utils seutils)
 
 file(GLOB_RECURSE SOURCES 
@@ -31,6 +29,5 @@ add_executable(${PROJECT_NAME} main.cpp ${SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS} ${LOGGER_THIRD_PARTY} ${LOGGER_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE 
     ${Boost_LIBRARIES} 
-    cds-s
     seutils
 )

@@ -11,6 +11,7 @@
 #include <crawler/config.hpp>
 #include <crawler/core/resource.hpp>
 #include <seutils/service.hpp>
+#include <seutils/async_event.hpp>
 #include <crawler/logging/logging.hpp>
 
 namespace se {
@@ -60,56 +61,77 @@ class ResourcesRepository final : public se::utils::Service {
     using se::utils::Service::context_;
     
 private:
-    struct DomainsContainerTraits : public cds::container::feldman_hashmap::traits {
+    struct ResourceGroupsContainerTraits : public cds::container::feldman_hashmap::traits {
         typedef std::hash<std::string> hash;
     };
 
-    struct DomainState {
+    struct ResourcesGroupState {
         std::atomic<bool> delayed;
         cds::container::FCPriorityQueue<details::PackedResource> queue;
         std::unique_ptr<boost::asio::high_resolution_timer> timer_ptr;
 
-        DomainState() : delayed{ true }
+        ResourcesGroupState() : delayed{ true }
         { }
 
-        DomainState(DomainState&& ds) :
+        ResourcesGroupState(ResourcesGroupState&& ds) :
             delayed{ ds.delayed.load(std::memory_order_acquire) },
             timer_ptr{ std::move(ds.timer_ptr) }
         { }
     };
 
-    using DomainsContainer = cds::container::FeldmanHashMap<cds::gc::HP, std::string, DomainState, DomainsContainerTraits>;
+    using GroupsContainer = cds::container::FeldmanHashMap<
+        cds::gc::HP, 
+        std::string, 
+        ResourcesGroupState, 
+        ResourceGroupsContainerTraits
+    >;
 
 public:
     ResourcesRepository();
 
     size_t size() const;
     size_t output_size() const;
-    size_t domain_size(const std::string& domain);
+    size_t group_size(const std::string& group_name);
 
     bool is_full() const;
-    bool try_push(ResourcePtr rptr);
+    void push(const std::string& group_name, ResourcePtr rptr);
     bool try_pop(ResourcePtr& ptr);
 
-    void reload_domain(const std::string& domain, bool forced = false);
+    template<typename Dur = std::chrono::milliseconds>
+    void reload_group(const std::string& group_name, bool forced = false, Dur desired_delay = Dur{0}) {
+        auto ptr = groups_.get(group_name);
+        if (ptr.empty())
+            return;
+        auto &state = ptr->second;
+        if (forced) {
+            handle_expired_reload(group_name, {});
+            return;
+        }
+        state.delayed.store(false, std::memory_order_release);
+        auto desired_delay_ms = std::chrono::duration_cast<std::decay_t<decltype(group_fetch_delay_ms_)>>(desired_delay);
+        state.timer_ptr->expires_from_now(std::max(group_fetch_delay_ms_, desired_delay_ms));
+        state.timer_ptr->async_wait(std::bind(&ResourcesRepository::handle_expired_reload, this, group_name, std::placeholders::_1));
+    }
+
     void reset();
 
 private:
     void handle_expired_reload(
-        const std::string& domain,
+        const std::string& group_name,
         const boost::system::error_code& ec
     );
-    void push_impl(Resource* rptr, bool output = false);
+    void push_impl(const std::string& group_name, Resource* rptr, bool output = false);
+    void push_with_overflow(Resource* rptr, ResourcesGroupState& state);
+    void push_to_group(Resource* rptr, ResourcesGroupState& state);
     void push_to_output(Resource* rptr);
 
 private:
     const size_t max_resources_count_;
-    const std::chrono::milliseconds domain_fetch_delay_ms_;
+    const std::chrono::milliseconds group_fetch_delay_ms_;
     std::atomic<size_t> count_;
-    std::mutex full_mutex_;
-    std::condition_variable full_cv_;
+    se::utils::AsyncEvent free_space_notifier_;
     cds::container::FCPriorityQueue<details::PackedResource> output_queue_;
-    DomainsContainer domains_;
+    GroupsContainer groups_;
 };
 
 } // namespace crawler

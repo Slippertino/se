@@ -4,13 +4,13 @@
 #include <boost/format.hpp>
 #include <tqp/token.hpp>
 #include <tqp/tools/stemmer.hpp>
-#include <seutils/threaded_resource.hpp>
+#include <tqp/tools/threaded_resource.hpp>
 
 namespace tqp {
 
 using StemmersMap = std::unordered_map<Language, Stemmer>;
 
-struct StemmingTransformer final : public se::utils::ThreadedResource<StemmingTransformer, StemmersMap> {
+struct StemmingTransformer final : public ThreadedResource<StemmingTransformer, StemmersMap> {
 
     StemmingTransformer() = default;
 

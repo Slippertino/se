@@ -10,7 +10,10 @@ TokenSequence BasicLexer::operator()(const std::string& text, Language lang) {
     auto flush = [&]() {
         if (word_pos == std::string::npos)
             return;
-        res.emplace_back(word_pos, lang, word, word);
+        auto uword = icu::UnicodeString(word.c_str());
+        auto count = uword.countChar32();
+        auto type = is_number(uword) ? TokenType::NUMBER : TokenType::TEXT; 
+        res.emplace_back(type, word_pos, count, count, lang, word, word);
         word.clear();
         word_pos = std::string::npos;
     };
@@ -33,6 +36,13 @@ TokenSequence BasicLexer::operator()(const std::string& text, Language lang) {
     }
     flush();
     return res;
+}
+
+bool BasicLexer::is_number(const icu::UnicodeString& text) {
+    bool flag{ true };
+    for(auto i = 0; i < text.countChar32() && flag; ++i)
+        flag &= u_hasBinaryProperty(text.char32At(i), UCHAR_HEX_DIGIT);
+    return flag;  
 }
 
 } // namespace tqp

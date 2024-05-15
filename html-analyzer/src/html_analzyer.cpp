@@ -1,12 +1,9 @@
 #include <htmlanalyzer/html_analyzer.hpp>
 
-#include <iostream>
-
 namespace html_analyzer {
 
-const std::regex HTMLAnalyzer::html_pattern_ = std::regex(
-    R"(\s*<!DOCTYPE html>.*)", 
-    std::regex_constants::grep
+const boost::regex HTMLAnalyzer::html_pattern_ = boost::regex(
+    R"(.*<html.*</html>.*)"
 );
 
 HTMLAnalyzer::HTMLAnalyzer(const std::string &content) : 
@@ -15,11 +12,11 @@ HTMLAnalyzer::HTMLAnalyzer(const std::string &content) :
 { } 
 
 bool HTMLAnalyzer::is_valid() const {
-    return std::regex_match(content_, html_pattern_);
+    return boost::regex_match(content_, html_pattern_);
 }
 
 [[nodiscard]] std::string HTMLAnalyzer::crop_content(
-    const std::initializer_list<std::string> &forbidden_tags,
+    const std::vector<std::string> &forbidden_tags,
     bool with_comments,
     bool with_whitespaces
 ) {
@@ -82,7 +79,7 @@ bool HTMLAnalyzer::is_element_empty(const GumboNode* node) {
     return el.start_pos.offset + el.original_tag.length + el.original_end_tag.length == el.end_pos.offset;
 }
 
-std::unordered_set<GumboTag> HTMLAnalyzer::get_tags_types(const std::initializer_list<std::string> &forbidden_tags) {
+std::unordered_set<GumboTag> HTMLAnalyzer::get_tags_types(const std::vector<std::string> &forbidden_tags) {
     std::unordered_set<GumboTag> black_list;
     for(auto &t : forbidden_tags)
         black_list.insert(gumbo_tag_enum(t.c_str()));

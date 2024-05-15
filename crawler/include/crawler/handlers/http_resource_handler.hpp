@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/http/error.hpp>
@@ -26,38 +27,42 @@ public:
         std::string body;
     };
 
+private:
+    using headers_parser_t = boost::beast::http::response_parser<boost::beast::http::string_body>;
+    using headers_t = typename headers_parser_t::value_type;
+    using http_code_handler_t = std::function<void(HttpResourceHandler*, ResourceLoader::ResourceLoadResults&, headers_t&)>;
+
 public:
     HttpResourceHandler(private_token);
-
     virtual ~HttpResourceHandler();
 
 protected:
-    bool check_permissions(
-        const ResourcePtr& resource,
-        std::shared_ptr<ResourceProcessor>& processor
-    ) const override final;
+    bool check_permissions() const override final;
+    void handle_no_permissions() override final;
+    void handle_resource(ResourceLoader::ResourceLoadResults results) override final;
 
-    void handle_no_permissions(
-        const ResourcePtr& resource,
-        std::shared_ptr<class ResourceProcessor>& processor
-    ) override final;
+    virtual void handle_failed_load();;
+    virtual void handle_http_resource(HttpResults& results) = 0;
 
-    void handle_resource(
-        ResourcePtr& resource, 
-        std::shared_ptr<ResourceProcessor> processor, 
-        ResourceLoader::ResourceLoadResults results
-    ) override final;
+private:
+    void handle_ok(ResourceLoader::ResourceLoadResults& results, headers_t& headers);
+    void handle_redirect(ResourceLoader::ResourceLoadResults& results, headers_t& headers);
+    void handle_bad_request(ResourceLoader::ResourceLoadResults& results, headers_t& headers);
+    void handle_requests_overflow(ResourceLoader::ResourceLoadResults& results, headers_t& headers);
+    void handle_unknown_code(ResourceLoader::ResourceLoadResults& results, headers_t& headers);
 
-    virtual void handle_failed_load(        
-        ResourcePtr& resource, 
-        std::shared_ptr<ResourceProcessor>& processor
-    );
-
-    virtual void handle_http_resource(
-        ResourcePtr& resource, 
-        std::shared_ptr<ResourceProcessor>& processor,
-        HttpResults& results
-    ) = 0;
+private:
+    static inline const std::unordered_map<boost::beast::http::status, http_code_handler_t> code_handlers_ = {
+        { boost::beast::http::status::ok,                   &HttpResourceHandler::handle_ok                  },
+        { boost::beast::http::status::moved_permanently,    &HttpResourceHandler::handle_redirect            },
+        { boost::beast::http::status::found,                &HttpResourceHandler::handle_redirect            },
+        { boost::beast::http::status::see_other,            &HttpResourceHandler::handle_redirect            },
+        { boost::beast::http::status::temporary_redirect,   &HttpResourceHandler::handle_redirect            },
+        { boost::beast::http::status::permanent_redirect,   &HttpResourceHandler::handle_redirect            },
+        { boost::beast::http::status::bad_request,          &HttpResourceHandler::handle_bad_request         },
+        { boost::beast::http::status::not_found,            &HttpResourceHandler::handle_bad_request         },
+        { boost::beast::http::status::too_many_requests,    &HttpResourceHandler::handle_requests_overflow   },
+    };
 };
 
 } // namespace crawler
