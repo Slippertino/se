@@ -4,7 +4,7 @@ namespace se {
 
 namespace utils {
 
-int ComperssionHelper::compress_in_memory(
+int CompressionHelper::compress_in_memory(
     std::istream& source,
     std::ostream& dest,
     const format_t& format,
@@ -36,7 +36,7 @@ int ComperssionHelper::compress_in_memory(
     return ARCHIVE_OK;
 }
 
-int ComperssionHelper::compress_in_memory(
+int CompressionHelper::compress_in_memory(
     std::istream& source,
     std::string& dest,
     const format_t& format,
@@ -49,7 +49,7 @@ int ComperssionHelper::compress_in_memory(
     return res;
 }
 
-int ComperssionHelper::compress_in_memory(
+int CompressionHelper::compress_in_memory(
     const std::string& source,
     std::string& dest, 
     const format_t& format,
@@ -63,7 +63,7 @@ int ComperssionHelper::compress_in_memory(
     return res;
 }
 
-int ComperssionHelper::decompress_in_memory(
+int CompressionHelper::decompress_in_memory(
     std::istream& source,
     std::ostream& dest,
     buffer_t& buffer,
@@ -91,7 +91,7 @@ int ComperssionHelper::decompress_in_memory(
     return ARCHIVE_OK;
 }
 
-int ComperssionHelper::decompress_in_memory(
+int CompressionHelper::decompress_in_memory(
     const std::string& source,
     std::string& dest,
     buffer_t& buffer,
@@ -104,7 +104,7 @@ int ComperssionHelper::decompress_in_memory(
     return res;
 }
 
-ComperssionHelper::buffer_t ComperssionHelper::read_input(std::istream& source) {
+CompressionHelper::buffer_t CompressionHelper::read_input(std::istream& source) {
     source.seekg(0, std::ios::end);
     auto sz = source.tellg();
     buffer_t buf(sz);
@@ -113,7 +113,7 @@ ComperssionHelper::buffer_t ComperssionHelper::read_input(std::istream& source) 
     return buf;
 }
 
-int ComperssionHelper::fail(struct archive* ar, std::string& error_desc) {
+int CompressionHelper::fail(struct archive* ar, std::string& error_desc) {
     error_desc = archive_error_string(ar);
     return archive_errno(ar);
 }

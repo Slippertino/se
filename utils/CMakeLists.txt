@@ -17,7 +17,7 @@ find_package(Boost COMPONENTS system thread atomic date_time url serialization R
 find_package(OpenSSL REQUIRED)
 find_package(amqpcpp CONFIG REQUIRED)
 find_package(LibArchive REQUIRED)
-find_package(quill CONFIG REQUIRED)
+find_package(quill 3.8.0 CONFIG REQUIRED)
 
 set(BUILD_TEST OFF)
 add_subdirectory(${SEUTILS_THIRD_PARTY}/libpqxx)

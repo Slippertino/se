@@ -13,14 +13,14 @@ struct CrawledResourceData final {
     std::string content;
 
     template<class Archive>
-    void save(Archive& ar, const unsigned int version) const {
+    void save(Archive& ar, const unsigned int) const {
         auto surl = std::string{ url.buffer() };
         ar & surl;
         ar & content;
     }
 
     template<class Archive>
-    void load(Archive& ar, const unsigned int version) {
+    void load(Archive& ar, const unsigned int) {
         std::string surl;
         ar & surl;
         url = boost::url{ surl };

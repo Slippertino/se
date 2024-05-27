@@ -5,7 +5,7 @@
 namespace tqp {
 
 struct EmptyTransformer {
-    void operator()(TokenSequence& seq, Language lang) { }
+    void operator()(TokenSequence&, Language) { }
 };
 
 } // namespace tqp

@@ -15,7 +15,6 @@ set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost COMPONENTS system thread atomic date_time REQUIRED)
-#find_package(ICU COMPONENTS data i18n io test tu uc le lx REQUIRED)
 find_package(protobuf CONFIG REQUIRED)
 find_package(unofficial-cld3 CONFIG REQUIRED)
 

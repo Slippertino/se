@@ -1,0 +1,83 @@
+components_manager:
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:      
+            worker_threads: 4
+    default_task_processor: main-task-processor 
+    components:
+        server:
+            listener:
+                port: 8080
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: error
+                    overflow_behavior: discard
+        logger:
+            component_name: SEARCHER
+            lvl: tracel1
+            log_formats:
+                console: "%(time) [%(thread_id)] %(log_level) %(custom_tags) - %(message)"
+                bus: "[%(thread_id)]\t%(message)"
+            time_formats:
+                console: "%Y-%m-%d %H:%M:%S"
+                bus: "%Y-%m-%d %H:%M:%S"
+        websearch:
+            path: /search
+            method: GET
+            task_processor: main-task-processor
+            options:
+                language_threshold: 0.2
+                max_query_languages_count: 3
+                resource_rank_threshold: 0.0
+                resource_static_rank_component_weight: 1
+                resource_dynamic_rank_component_weight: 1
+                default_language: en
+        search-queries-cache:
+            size: 100000
+            ways: 2
+            lifetime: 5m
+            config-settings: false
+        index-database:
+            dbalias: index
+            load-enabled: true
+            blocking_task_processor: fs-task-processor
+            dns_resolver: async
+            persistent-prepared-statements: true
+            min_pool_size: 8
+            max_pool_size: 15
+            max_queue_size: 2000
+        bus:
+            secdist_alias: bus
+            min_pool_size: 1
+            max_pool_size: 2
+            max_in_flight_requests: 0
+            use_secure_connection: false
+            messages:
+                - name: logging
+                  enabled: false
+                  exchange: se
+                  routing_key: log
+                  max_batch_size: 10
+                  max_batch_volume: 10240
+                  compression_type: lzma
+                - name: queries
+                  enabled: false
+                  exchange: se
+                  routing_key: query
+                  max_batch_size: 10
+                  max_batch_volume: 10240
+                  compression_type: lzma
+        dns-client:
+            fs-task-processor: fs-task-processor
+        testsuite-support:
+        secdist:
+            provider: default-secdist-provider
+        default-secdist-provider:                        
+            config: secdist.json
+            format: json
+            blocking-task-processor: fs-task-processor

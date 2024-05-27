@@ -40,3 +40,6 @@
 [submodule "utils/third-party/libcds"]
 	path = utils/third-party/libcds
 	url = https://github.com/khizmax/libcds
+[submodule "searcher/third-party/userver"]
+	path = searcher/third-party/userver
+	url = https://github.com/userver-framework/userver

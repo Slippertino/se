@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <boost/url.hpp>
+#include <seutils/dtos/transmission_options.hpp>
 
 namespace se {
 
@@ -12,6 +13,7 @@ struct AMQPBusMessageConfig {
     bool enabled;
     std::string exchange;
     std::string routing_key;
+    TransmissionOptions transmission_options;
 };
 
 struct AMQPBusConfig {

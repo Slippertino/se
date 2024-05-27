@@ -12,7 +12,7 @@ namespace se {
 
 namespace utils {
 
-class ComperssionHelper {
+class CompressionHelper {
 public:
     using format_t = std::string;
     using buffer_t = std::vector<char>;

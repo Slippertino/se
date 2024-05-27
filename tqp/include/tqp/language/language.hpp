@@ -23,7 +23,11 @@ public:
 	explicit Language(const std::string& code);
 
 	static struct LanguageEntry find_language(const std::string& text);
-	static std::vector<struct LanguageEntry> find_top_nmost_freq_langs(const std::string& text, double threshold, int max_count);
+	static std::vector<struct LanguageEntry> find_top_nmost_freq_langs(
+		const std::string& text, 
+		double threshold, 
+		int max_count = std::numeric_limits<int>::max()
+	);
 
 	size_t number() const;
 	LanguageType type() const;
