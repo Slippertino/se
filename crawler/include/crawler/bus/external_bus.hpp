@@ -6,6 +6,7 @@
 #include <seutils/dtos/batched_dto.hpp>
 #include <seutils/models/resource_data.hpp>
 #include <seutils/models/log_data.hpp>
+#include <seutils/bus/bus_config.hpp>
 #include <seutils/logging/logging.hpp>
 
 namespace se {
@@ -29,52 +30,49 @@ private:
     using LogBuffer = se::utils::ThreadedMemoryBuffer<logs_compression_tag>;
 
 public:
-    IExternalBus() :
-        CrawledBuffer           { Config::from_bus_message<size_t>(crawled_resources_key_, "max_batch_volume")  },
-        LogBuffer               { Config::from_bus_message<size_t>(logging_key_, "max_batch_volume")            },
-        max_resource_batch_size_{ Config::from_bus_message<size_t>(crawled_resources_key_, "max_batch_size")    },
-        max_log_batch_size_     { Config::from_bus_message<size_t>(logging_key_, "max_batch_size")              }
+    IExternalBus(const se::utils::BusConfig& config) :
+        CrawledBuffer           { config.routes_options.at(crawled_resources_key_).max_batch_volume },
+        LogBuffer               { config.routes_options.at(logging_key_).max_batch_volume           },
+        config_{ config }
     { }
 
     template<std::same_as<CrawledResourceType> R>
     CrawledResourceType create_thread_resource() {
-        return CrawledResourceType {
-            Config::from_bus_message<std::string>(crawled_resources_key_, "compression_type"),
-            { },
-            CrawledBuffer::get_thread_resource()
-        };
+        return CrawledResourceType(
+            CrawledBuffer::get_thread_resource(),
+            config_.routes_options.at(crawled_resources_key_).max_batch_size,
+            config_.routes_options.at(crawled_resources_key_).compression_type  
+        );
     }
     
     template<std::same_as<LogType> R>
     LogType create_thread_resource() {
-        return LogType {
-            Config::from_bus_message<std::string>(logging_key_, "compression_type"),
-            { },
-            LogBuffer::get_thread_resource()
-        };
+        return LogType(
+            LogBuffer::get_thread_resource(),
+            config_.routes_options.at(logging_key_).max_batch_size,
+            config_.routes_options.at(logging_key_).compression_type  
+        );
     }
     
     void send_resource(const se::utils::CrawledResourceData& data) {
         send_to_batch<CrawledResource, se::utils::CrawledResourceData>(
             data, 
-            crawled_resources_key_, 
-            max_resource_batch_size_
+            crawled_resources_key_
         );
     }
 
     void send_log(const se::utils::LogData& data) {
         send_to_batch<Log, se::utils::LogData>(
             data, 
-            logging_key_, 
-            max_log_batch_size_
+            logging_key_
         );
     }
 
     virtual ~IExternalBus() {
-        if (!CrawledResource::get_thread_resource().data.empty())
+        while (!CrawledResource::get_thread_resource().is_empty())
             flush_batch<CrawledResource>(crawled_resources_key_);
-        if (!Log::get_thread_resource().data.empty())
-            flush_batch<Log>(logging_key_);        
+        while (!Log::get_thread_resource().is_empty())
+            flush_batch<Log>(logging_key_);
     }
 
 protected:
@@ -95,21 +93,18 @@ protected:
 
 private:
     template<typename ResourceType, typename ResourceDataType>
-    void send_to_batch(const ResourceDataType& data, const std::string& key, size_t batch_size) {
+    void send_to_batch(const ResourceDataType& data, const std::string& key) {
         auto &batch = ResourceType::get_thread_resource();
-        if (batch.data.size() == batch_size)
+        batch.try_add_data(data);
+        while(!batch.is_empty())
             flush_batch<ResourceType>(key);
-        batch.data.push_back(data);    
     }
 
-    template<typename ThreadResource>
+    template<typename ResourceType>
     void flush_batch(const std::string& key) {
         try {
-            auto& batch = ThreadResource::get_thread_resource();
-            std::ostringstream buffer;
-            boost::archive::text_oarchive oa{ buffer, boost::archive::no_header };
-            oa << batch;
-            send_data(key, std::move(buffer.str()), key != logging_key_);        
+            auto& batch = ResourceType::get_thread_resource();
+            send_data(key, batch.serialize(), key != logging_key_);        
         } catch(const std::exception& ex) {
             LOG_ERROR_WITH_TAGS(
                 se::utils::logging::bus_category, 
@@ -125,8 +120,7 @@ private:
     static inline const std::string logging_key_ = "logging";
 
 private:
-    size_t max_resource_batch_size_;
-    size_t max_log_batch_size_;
+    const se::utils::BusConfig config_;
 };
 
 } // namespace crawler

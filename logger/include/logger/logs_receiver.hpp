@@ -10,6 +10,7 @@
 #include <seutils/logging/logging.hpp>
 #include <seutils/threaded_resource.hpp>
 #include <seutils/threaded_memory_buffer.hpp>
+#include <seutils/bus/bus_config.hpp>
 #include "memory_buffer_tags.hpp"
 
 namespace se {
@@ -26,14 +27,12 @@ private:
     using LogBuffer = se::utils::ThreadedMemoryBuffer<logs_compression_tag>;
 
 public:
-    LogsReceiver();
+    LogsReceiver(const se::utils::BusConfig&);
 
     template<std::same_as<LogType> R>
     LogType create_thread_resource() {
         return LogType {
-            "",
-            { },
-            LogBuffer::get_thread_resource()
+            LogBuffer::get_thread_resource()  
         };
     }
 
@@ -41,17 +40,17 @@ public:
     void start_receiving_logs(Callback&& on_parsed) {
         start_receiving_data(logging_key_,
             [this, on_parsed = std::forward<Callback>(on_parsed)](const char* data, uint64_t len) {
-                read_batch(data, len);
                 auto& batch = Log::get_thread_resource();
-                auto size = batch.data.size();
-                for(auto& log : batch.data)
+                batch.load_from_string(std::string(data, len));
+                auto size = batch.data().size();
+                for(auto& log : batch.data())
                     on_parsed(std::move(log));
-                batch.data.clear();
+                batch.data().clear();
                 LOG_INFO_WITH_TAGS(
                     se::utils::logging::bus_category,
                     "{} logs compressed by {} were successfully received from bus with key {}.",
                     size,
-                    batch.compression_type,
+                    batch.compression_type(),
                     logging_key_
                 );
             },
@@ -81,9 +80,6 @@ protected:
     virtual void resume_receiving_data(const std::string& key) = 0;
     virtual void stop_receiving_data(const std::string& key) = 0;
     virtual void pause_receiving_data(const std::string& key) = 0;
-
-private:
-    void read_batch(const char* message, uint64_t len);
 
 private:
     static inline std::string logging_key_ = "logging";

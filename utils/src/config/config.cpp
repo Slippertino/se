@@ -1,5 +1,4 @@
 #include <seutils/config/config.hpp>
-#include <iostream>
 
 namespace se {
 
@@ -9,8 +8,7 @@ Config::Config(const YAML::Node& root) :
     config_{ root }
 { }
 
-Config::Config(const std::filesystem::path& path) : 
-    config_{ YAML::LoadFile(path) }
+Config::Config(const std::filesystem::path& path) : Config{ YAML::LoadFile(path) }
 { }
 
 AMQPBusConfig Config::bus_config(const std::string& path) const {

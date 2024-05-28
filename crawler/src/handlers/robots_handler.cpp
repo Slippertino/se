@@ -34,7 +34,7 @@ void RobotsTxtHandler::handle_http_resource(HttpResults& results) {
     if (!robots.contains(domain))
         robots.upload(domain, RobotState{});
     auto rb = parsers::Robots{ results.body };
-    auto raw_sitemaps = rb.extract_sitemaps(Config::name());
+    auto raw_sitemaps = rb.extract_sitemaps(se::utils::GlobalConfig<Config>::config.name());
     std::vector<ResourcePtr> sitemaps;
     sitemaps.reserve(raw_sitemaps.size());
     for(auto&& sm : raw_sitemaps) {

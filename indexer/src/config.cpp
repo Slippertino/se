@@ -5,21 +5,11 @@ namespace se {
 
 namespace indexer {
 
-void Config::load(const std::string& path) {
-    se::utils::Config::load_impl(path);
-}
+Config::Config(const YAML::Node& root) : se::utils::Config(root)
+{ }
 
-std::string Config::logging_message_pattern(const std::string& key) {
-    return get<std::string>(
-        (boost::format{ "indexer.logging.log_formats.%1%" } % key).str()            
-    );
-}
-
-std::string Config::logging_time_pattern(const std::string& key) {
-    return get<std::string>(
-        (boost::format{ "indexer.logging.time_formats.%1%" } % key).str()            
-    );
-}
+Config::Config(const std::filesystem::path& path) : se::utils::Config(path)
+{ }
 
 IndexingOptions Config::options() {
     auto cfg_root = node_by_path("indexer.options");

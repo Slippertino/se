@@ -12,7 +12,9 @@ ResourceProcessor::ResourceProcessor(
     private_token
 ) : 
     Service(true, false),
-    max_concurrent_handlers_count_{ Config::from_service<size_t>("processor", "max_size") },
+    max_concurrent_handlers_count_{ 
+        se::utils::GlobalConfig<Config>::config.from_service<size_t>("processor", "max_size") 
+    },
     total_handled_{ 0 },
     total_succeed_handled_{ 0 },
     total_in_work_{ 0 },

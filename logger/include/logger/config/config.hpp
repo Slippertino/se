@@ -4,8 +4,8 @@
 #include <chrono>
 #include <boost/url.hpp>
 #include <seutils/config/config.hpp>
-#include <seutils/amqp/amqp_config.hpp>
 #include <logger/db/db_config.hpp>
+#include <logger/config/logging_options.hpp>
 
 namespace se {
 
@@ -16,8 +16,12 @@ private:
     using se::utils::Config::config_;
 
 public:
-    static void load(const std::string& path);
-    static DbConfig db_config();
+    Config() = default;
+    Config(const YAML::Node&);
+    explicit Config(const std::filesystem::path& path); 
+    
+    LoggingOptions options() const;
+    DbConfig db_config() const;
 };
     
 } // namespace logger

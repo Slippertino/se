@@ -24,14 +24,14 @@ crawler:
     thread_pool: 2
     connection_string: amqp://guest:guest@localhost:5672/
     messages:
-      crawled:
+      - name: crawled
         enabled: false
         exchange: se
         routing_key: pages_to_index
         max_batch_size: 10
         max_batch_volume: 10485760
         compression_type: lzma
-      logging:
+      - name: logging
         enabled: true
         exchange: se
         routing_key: log

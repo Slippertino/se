@@ -17,7 +17,7 @@ void SitemapHandler::handle_http_resource(HttpResults& results) {
         auto& buffer = get_thread_resource();
         std::istringstream in{ std::move(results.body) };
         std::string error;
-        if (se::utils::ComperssionHelper::decompress_complex(in, buffer, error, [this, &out](auto name, auto content) {
+        if (se::utils::CompressionHelper::decompress_complex(in, buffer, error, [this, &out](auto name, auto content) {
             extract_resources(resource_, std::move(content), out);
         })) {
             LOG_ERROR_WITH_TAGS(

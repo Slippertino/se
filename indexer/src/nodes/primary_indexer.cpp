@@ -114,7 +114,7 @@ void PrimaryIndexer::compress_content(Resource& resource) {
         buffer.resize(sz * 2);
     std::string compressed;
     std::string error;
-    if (se::utils::ComperssionHelper::compress_in_memory(
+    if (se::utils::CompressionHelper::compress_in_memory(
         resource.content, 
         compressed,
         resource.compression_type,

@@ -22,7 +22,9 @@ public:
     explicit HttpLoader(boost::asio::io_context& context, bool secure = false) : 
         ResourceLoader(context),
         secure_{ secure },
-        fetch_timeout_ms_{ Config::from_service<size_t>("processor", "fetch_resource_timeout_ms") },
+        fetch_timeout_ms_{ 
+            se::utils::GlobalConfig<Config>::config.from_service<size_t>("processor", "fetch_resource_timeout_ms") 
+        },
         ssl_stream_{ context, ssl_context_ }
     { }
 
@@ -40,7 +42,7 @@ private:
         request_.target(url.encoded_resource());
         request_.set(boost::beast::http::field::content_type, "text/html");
         request_.set(boost::beast::http::field::accept_charset, "utf-8");
-        request_.set(boost::beast::http::field::user_agent, Config::name());
+        request_.set(boost::beast::http::field::user_agent, se::utils::GlobalConfig<Config>::config.name());
         request_.set(boost::beast::http::field::host, url.encoded_host());
         request_.keep_alive(false);
     }

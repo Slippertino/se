@@ -20,14 +20,13 @@ void Indexer::run() {
         LOG_ERROR_WITH_TAGS(se::utils::logging::main_category, "Indexer finishing with errors...");
         return;
     }
-    auto options = Config::options();
+    auto options = se::utils::GlobalConfig<Config>::config.options();
     run_primary_indexing_stage(options);
     run_finally_indexing_stage(options);
     LOG_INFO_WITH_TAGS(se::utils::logging::main_category, "Indexing was proceed. Finishing...");
 }
 
-void Indexer::setup(const std::string& path) {
-    Config::load(path);
+void Indexer::setup() {
     std::shared_ptr<BusHandlerType> bus_handler;
     CONFIGURE(try_configure_logging(bus_handler))
     LOG_INFO_WITH_TAGS(se::utils::logging::main_category, "Indexer started...");
@@ -46,7 +45,7 @@ void Indexer::run_primary_indexing_stage(const IndexingOptions& opts) {
         [&puller](auto msg, auto& gateway) { puller.run(msg, gateway); }
     };
     tbb::flow::multifunction_node<se::utils::CrawledResourceData, std::tuple<tbb::flow::continue_msg>> primary_indexer {
-        g, Config::thread_pool("indexer.options.primary_indexer"), PrimaryIndexer{ opts, db_ }
+        g, se::utils::GlobalConfig<Config>::config.thread_pool("indexer.options.primary_indexer"), PrimaryIndexer{ opts, db_ }
     };
     tbb::flow::multifunction_node<tbb::flow::continue_msg, std::tuple<tbb::flow::continue_msg>> breaker {
         g, 1, LoaderBreaker{ opts, puller, db_ }
@@ -96,7 +95,7 @@ Indexer::~Indexer() {
 
 bool Indexer::try_configure_db() {
     try {
-        auto cfg = Config::db_config();
+        auto cfg = se::utils::GlobalConfig<Config>::config.db_config();
         db_ = std::make_shared<PostgresDataProvider>(cfg);
         auto res = db_->enabled();
         if (res) {
@@ -122,10 +121,11 @@ bool Indexer::try_configure_db() {
 
 bool Indexer::try_configure_bus() {
     try {
-        auto cfg = Config::bus_config("indexer.bus");
+        const auto& g_cfg = se::utils::GlobalConfig<Config>::config;
+        auto cfg = g_cfg.bus_config("indexer.bus");
         bus_ = std::make_shared<se::utils::AMQPBusMixin<IExternalBus>>(cfg);
         bus_->run();
-        for(auto i = 0; i < Config::thread_pool("indexer.bus"); ++i) {
+        for(auto i = 0; i < g_cfg.thread_pool("indexer.bus"); ++i) {
             bus_pool_.create_thread([this](){
                 bus_->attach();
             });
@@ -144,18 +144,19 @@ bool Indexer::try_configure_bus() {
 
 bool Indexer::try_configure_logging(std::shared_ptr<BusHandlerType>& bus_out_handler) {
     try {
+        const auto& g_cfg = se::utils::GlobalConfig<Config>::config;
         auto console_handler = quill::stdout_handler();
         console_handler->set_pattern(
-            Config::logging_message_pattern("console"), 
-            Config::logging_time_pattern("console"), 
+            g_cfg.logging_message_pattern("console", "indexer.logging"), 
+            g_cfg.logging_time_pattern("console", "indexer.logging"), 
             quill::Timezone::GmtTime
         );
         static_cast<quill::ConsoleHandler*>(console_handler.get())->enable_console_colours();
 
         auto bus_handler = quill::create_handler<BusHandlerType>("BUS_HANDLER");
         bus_handler->set_pattern(
-            Config::logging_message_pattern("bus"), 
-            Config::logging_time_pattern("bus"), 
+            g_cfg.logging_message_pattern("bus", "indexer.logging"), 
+            g_cfg.logging_time_pattern("bus", "indexer.logging"), 
             quill::Timezone::GmtTime
         );
 
@@ -169,11 +170,11 @@ bool Indexer::try_configure_logging(std::shared_ptr<BusHandlerType>& bus_out_han
 
         quill::Logger* logger = quill::get_logger();
         logger->set_log_level(
-            quill::loglevel_from_string(Config::get<std::string>("indexer.logging.lvl"))
+            quill::loglevel_from_string(g_cfg.get<std::string>("indexer.logging.lvl"))
         );
 
         bus_out_handler = std::static_pointer_cast<BusHandlerType>(bus_handler); 
-        bus_out_handler->set_component_name(Config::get<std::string>("indexer.component_name"));
+        bus_out_handler->set_component_name(g_cfg.get<std::string>("indexer.component_name"));
 
         LOG_INFO_WITH_TAGS(se::utils::logging::main_category, "Configured loggers.");  
 

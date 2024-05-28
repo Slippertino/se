@@ -11,11 +11,11 @@ namespace logger {
     }                                                           \
 
 LogsCollector::LogsCollector() :
-    se::utils::Service{ true, true, std::chrono::milliseconds(Config::get<size_t>("logger.options.periodicity_ms")), 1 },
+    se::utils::Service{ true, true, se::utils::GlobalConfig<Config>::config.options().periodicity, 1 },
     config_errors_{ false },
-    max_allocated_memory_size_{ Config::get<size_t>("logger.options.memory_limit") },
-    reduce_ratio_{ Config::get<double>("logger.options.reduce_ratio") } { 
-    logs_buffer_.reserve(max_allocated_memory_size_ / sizeof(se::utils::LogData));
+    opts_{ se::utils::GlobalConfig<Config>::config.options() }
+{ 
+    logs_buffer_.reserve(opts_.memory_limit / sizeof(se::utils::LogData));
 }
 
 void LogsCollector::run() {
@@ -50,7 +50,7 @@ LogsCollector::~LogsCollector() {
 
 bool LogsCollector::try_configure_db() {
     try {
-        auto cfg = Config::db_config();
+        auto cfg = se::utils::GlobalConfig<Config>::config.db_config();
         db_ = std::make_unique<LogsProvider>(cfg);
         auto res = db_->enabled();
         if (res) {
@@ -76,10 +76,11 @@ bool LogsCollector::try_configure_db() {
 
 bool LogsCollector::try_configure_bus() {
     try {
-        auto cfg = Config::bus_config("logger.bus");
+        const auto& g_cfg = se::utils::GlobalConfig<Config>::config;
+        auto cfg = g_cfg.bus_config("logger.bus");
         bus_ = std::make_unique<se::utils::AMQPBusMixin<LogsReceiver>>(cfg);
         bus_->run();
-        for(auto i = 0; i < Config::thread_pool("logger.bus"); ++i) {
+        for(auto i = 0; i < g_cfg.thread_pool("logger.bus"); ++i) {
             bus_pool_.create_thread([this](){
                 cds::threading::Manager::attachThread();
                 bus_->attach();
@@ -99,10 +100,11 @@ bool LogsCollector::try_configure_bus() {
 
 bool LogsCollector::try_configure_logging() {
     try {
+        const auto& g_cfg = se::utils::GlobalConfig<Config>::config;
         auto console_handler = quill::stdout_handler();
         console_handler->set_pattern(
-            Config::get<std::string>("logger.logging.log_format"), 
-            Config::get<std::string>("logger.logging.time_format"), 
+            g_cfg.logging_message_pattern("console", "logger.logging"),
+            g_cfg.logging_time_pattern("console", "logger.logging"),
             quill::Timezone::GmtTime
         );
         static_cast<quill::ConsoleHandler*>(console_handler.get())->enable_console_colours();
@@ -112,9 +114,12 @@ bool LogsCollector::try_configure_logging() {
         cfg.backend_thread_empty_all_queues_before_exit = true;
         quill::configure(cfg);
         quill::start(); 
+        quill::Logger* logger = quill::get_logger();
+        logger->set_log_level(
+            quill::loglevel_from_string(g_cfg.get<std::string>("logger.logging.lvl"))
+        );
         LOG_INFO_WITH_TAGS(se::utils::logging::main_category, "Configured loggers.");  
         return true;
-
     } catch(const std::exception& ex) {
         std::cerr << "Exception occured in logger configuring: " << ex.what() << "\n";
         return false;
@@ -122,9 +127,9 @@ bool LogsCollector::try_configure_logging() {
 }
 
 void LogsCollector::dispatch_service_data() {
-    if (current_memory_size_.load(std::memory_order_acquire) < max_allocated_memory_size_)
+    if (current_memory_size_.load(std::memory_order_acquire) < opts_.memory_limit)
         return;
-    size_t target_size = max_allocated_memory_size_ * reduce_ratio_;
+    size_t target_size = opts_.memory_limit * opts_.reduce_ratio;
     while(target_size < current_memory_size_.load(std::memory_order_acquire)) {
         se::utils::LogData cur;
         if (!logs_queue_.pop(cur))

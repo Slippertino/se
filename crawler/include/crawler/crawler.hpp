@@ -19,7 +19,7 @@ namespace crawler {
 class Crawler : public se::utils::Service {
 public:
     Crawler();
-    void setup(const std::string& cfg);
+    void setup();
     void stop() override;
     ~Crawler();
 

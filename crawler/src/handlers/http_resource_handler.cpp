@@ -7,7 +7,7 @@ namespace crawler {
 
 HttpResourceHandler::HttpResourceHandler(HttpResourceHandler::private_token) : 
     ResourceHandler({}),
-    se::utils::ThreadedMemoryBuffer<resource_handling_tag>{ Config::max_resource_size() }
+    se::utils::ThreadedMemoryBuffer<resource_handling_tag>{ se::utils::GlobalConfig<Config>::config.max_resource_size() }
 { } 
 
 HttpResourceHandler::~HttpResourceHandler() { }
@@ -21,7 +21,7 @@ bool HttpResourceHandler::check_permissions() const {
     if (!state.robots.has_value())
         return false;
     const auto& robots = state.robots.value();
-    if (!robots.allowed(Config::name(), resource_->url())) {
+    if (!robots.allowed(se::utils::GlobalConfig<Config>::config.name(), resource_->url())) {
         LOG_TRACE_L1_WITH_TAGS(logging::handler_category, "Permission denied to {}", resource_->url().c_str());
         return false;
     }

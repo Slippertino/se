@@ -51,7 +51,7 @@ indexer:
     queues:
       index: pages_to_index
     messages:
-      logging:
+      - name: logging
         enabled: false
         exchange: se
         routing_key: log

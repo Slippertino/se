@@ -10,7 +10,7 @@
 #include <seutils/logging/logging.hpp>
 #include <logger/db/logs_provider.hpp>
 #include <logger/logs_receiver.hpp>
-#include "config.hpp"
+#include <logger/config/config.hpp>
 
 namespace std {
     template<>
@@ -52,8 +52,7 @@ private:
     std::atomic<bool> config_errors_;
 
 private:
-    const size_t max_allocated_memory_size_;
-    const double reduce_ratio_;
+    const LoggingOptions opts_;
     std::atomic<size_t> current_memory_size_{ 0 }; 
     cds::container::FCPriorityQueue<se::utils::LogData> logs_queue_;
     std::vector<se::utils::LogData> logs_buffer_;

@@ -23,7 +23,7 @@ private:
 public:
     Indexer();
 
-    void setup(const std::string& path);
+    void setup();
     void run() override;
 
     ~Indexer();

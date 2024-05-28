@@ -15,8 +15,7 @@ Crawler::Crawler() :
     config_errors_{ false }
 { }
 
-void Crawler::setup(const std::string& cfg) {
-    Config::load(cfg);
+void Crawler::setup() {
     std::shared_ptr<BusHandlerType> bus_logging_handler;
     CONFIGURE(try_configure_logging(bus_logging_handler))
     LOG_INFO_WITH_TAGS(se::utils::logging::main_category, "Application started...");
@@ -93,7 +92,8 @@ void Crawler::dispatch_service_data() {
 
 bool Crawler::try_configure_db() {
     try {
-        auto cfg = Config::db_config();
+        const auto& g_cfg = se::utils::GlobalConfig<Config>::config;
+        auto cfg = g_cfg.db_config();
         auto provider = std::make_shared<PostgresDataProvider>(cfg);
         auto res = provider->enabled();
         if (res) {
@@ -120,10 +120,11 @@ bool Crawler::try_configure_db() {
 
 bool Crawler::try_configure_bus() {
     try {
-        auto cfg = Config::bus_config("crawler.bus");
+        const auto& g_cfg = se::utils::GlobalConfig<Config>::config;
+        auto cfg = g_cfg.bus_config("crawler.bus");
         bus_ = std::make_shared<se::utils::AMQPBusMixin<IExternalBus>>(cfg);
         bus_->run();
-        for(auto i = 0; i < Config::thread_pool("crawler.bus"); ++i) {
+        for(auto i = 0; i < g_cfg.thread_pool("crawler.bus"); ++i) {
             bus_group_.create_thread([this](){
                 cds::threading::Manager::attachThread();
                 bus_->attach();
@@ -144,8 +145,9 @@ bool Crawler::try_configure_bus() {
 
 bool Crawler::try_configure_queue() {
     try {
+        const auto& g_cfg = se::utils::GlobalConfig<Config>::config;
         queue_ = std::make_shared<ResourcesRepository>();
-        for(auto i = 0; i < Config::thread_pool("crawler.services.queue"); ++i) {
+        for(auto i = 0; i < g_cfg.thread_pool("crawler.services.queue"); ++i) {
             queue_group_.create_thread([this]() {
                 cds::threading::Manager::attachThread();
                 queue_->run();
@@ -167,8 +169,9 @@ bool Crawler::try_configure_queue() {
 
 bool Crawler::try_configure_distributor() {
     try {
+        const auto& g_cfg = se::utils::GlobalConfig<Config>::config;
         distributor_ = std::make_shared<ResourceDistributor>(db_, queue_);
-        for(auto i = 0; i < Config::thread_pool("crawler.services.distributor"); ++i) {
+        for(auto i = 0; i < g_cfg.thread_pool("crawler.services.distributor"); ++i) {
             distributor_group_.create_thread([this]() {
                 cds::threading::Manager::attachThread();
                 distributor_->run();
@@ -190,8 +193,9 @@ bool Crawler::try_configure_distributor() {
 
 bool Crawler::try_configure_processor() {
     try {
+        const auto& g_cfg = se::utils::GlobalConfig<Config>::config;
         processor_ = ResourceProcessor::create(distributor_, queue_, db_, bus_);
-        for(auto i = 0; i < Config::thread_pool("crawler.services.processor"); ++i) {
+        for(auto i = 0; i < g_cfg.thread_pool("crawler.services.processor"); ++i) {
             processor_group_.create_thread([this, i]() {
                 cds::threading::Manager::attachThread();
                 if (!i)
@@ -214,18 +218,19 @@ bool Crawler::try_configure_processor() {
 
 bool Crawler::try_configure_logging(std::shared_ptr<BusHandlerType>& bus_out_handler) {
     try {
+        const auto& g_cfg = se::utils::GlobalConfig<Config>::config;
         auto console_handler = quill::stdout_handler();
         console_handler->set_pattern(
-            Config::logging_message_pattern("console"), 
-            Config::logging_time_pattern("console"), 
+            g_cfg.logging_message_pattern("console", "crawler.logging"), 
+            g_cfg.logging_time_pattern("console", "crawler.logging"), 
             quill::Timezone::GmtTime
         );
         static_cast<quill::ConsoleHandler*>(console_handler.get())->enable_console_colours();
 
         auto bus_handler = quill::create_handler<BusHandlerType>("BUS_HANDLER");
         bus_handler->set_pattern(
-            Config::logging_message_pattern("bus"), 
-            Config::logging_time_pattern("bus"), 
+            g_cfg.logging_message_pattern("bus", "crawler.logging"), 
+            g_cfg.logging_time_pattern("bus", "crawler.logging"), 
             quill::Timezone::GmtTime
         );
 
@@ -239,11 +244,11 @@ bool Crawler::try_configure_logging(std::shared_ptr<BusHandlerType>& bus_out_han
 
         quill::Logger* logger = quill::get_logger();
         logger->set_log_level(
-            quill::loglevel_from_string(Config::get<std::string>("crawler.logging.lvl"))
+            quill::loglevel_from_string(g_cfg.get<std::string>("crawler.logging.lvl"))
         );
 
         bus_out_handler = std::static_pointer_cast<BusHandlerType>(bus_handler); 
-        bus_out_handler->set_component_name(Config::get<std::string>("crawler.component_name"));
+        bus_out_handler->set_component_name(g_cfg.get<std::string>("crawler.component_name"));
 
         LOG_INFO_WITH_TAGS(se::utils::logging::main_category, "Configured loggers.");  
 

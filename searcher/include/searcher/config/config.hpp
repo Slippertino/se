@@ -18,6 +18,7 @@ public:
     Config() = default;
     Config(const YAML::Node&);
     explicit Config(const std::filesystem::path& path); 
+    
     SearchOptions options(const std::string& options_path = "") const;
 };
     

@@ -18,21 +18,19 @@ private:
     using se::utils::Config::config_;
 
 public:
-    static void load(const std::string& path);
-    static std::string name() noexcept;
+    Config() = default;
+    Config(const YAML::Node&);
+    explicit Config(const std::filesystem::path& path); 
 
     template<typename T>
-    static T from_bus_message(const std::string& key, const std::string& path) {
+    T from_bus_message(const std::string& key, const std::string& path) {
         return get<T>(
             (boost::format{ "indexer.bus.messages.%1%.%2%" } % key % path).str()
         );
     }
     
-    static std::string logging_message_pattern(const std::string& key);
-    static std::string logging_time_pattern(const std::string& key);
-
-    static IndexingOptions options();
-    static DbConfig db_config();
+    IndexingOptions options();
+    DbConfig db_config();
 };
     
 } // namespace indexer

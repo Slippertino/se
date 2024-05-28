@@ -48,7 +48,7 @@ public:
         return compression_type_;
     }
 
-    const std::deque<Type>& data() const {
+    std::deque<Type>& data() {
         return data_;
     }
 
@@ -101,7 +101,7 @@ public:
         int size, count;
         std::string compressed, decompressed;
         ar & compression_type_;
-        ar & size;
+        ar & size; 
         ar & count;
         ar & compressed;
         data_.resize(count);
@@ -145,7 +145,7 @@ private:
     }
 
 public:
-    static constexpr std::string_view no_compression_tag = "nocompression";
+    static inline const std::string no_compression_tag = "nocompression";
 
 private:
     size_t max_batch_size_;

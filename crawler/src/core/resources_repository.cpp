@@ -6,8 +6,12 @@ namespace crawler {
 
 ResourcesRepository::ResourcesRepository() : 
     Service(false, false), 
-    max_resources_count_  { Config::from_service<size_t>("queue", "max_size")            },
-    group_fetch_delay_ms_{ Config::from_service<size_t>("queue", "group_fetch_delay_ms") },
+    max_resources_count_  { 
+        se::utils::GlobalConfig<Config>::config.from_service<size_t>("queue", "max_size")            
+    },
+    group_fetch_delay_ms_{ 
+        se::utils::GlobalConfig<Config>::config.from_service<size_t>("queue", "group_fetch_delay_ms") 
+    },
     count_{ 0 },
     free_space_notifier_{ get_context() }
 { }

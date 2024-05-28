@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <boost/url.hpp>
 #include <seutils/dtos/transmission_options.hpp>
+#include <seutils/bus/bus_config.hpp>
 
 namespace se {
 
@@ -21,6 +22,13 @@ struct AMQPBusConfig {
     boost::url url;
     std::unordered_map<std::string, AMQPBusMessageConfig> messages;
     std::unordered_map<std::string, std::string> queues;
+
+    BusConfig to_bus_config() const {
+        BusConfig cfg;
+        for(const auto& msg : messages)
+            cfg.routes_options.insert({ msg.first, msg.second.transmission_options });
+        return cfg;
+    }
 };
 
 } // namespace utils

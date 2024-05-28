@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <concepts>
 #include <filesystem>
 #include <type_traits>
 #include <boost/format.hpp>
@@ -53,11 +54,13 @@ protected:
     YAML::Node config_;
 };
 
-inline Config gConfig;
-
-inline void load_global_config(const std::filesystem::path& path) {
-    gConfig = Config(path);
-}
+template<std::derived_from<Config> ConfigType>
+struct GlobalConfig {
+    static inline ConfigType config;
+    static inline void load_global_config(const std::filesystem::path& path) {
+        config = ConfigType(path);
+    }
+};
 
 } // namespace utils
 

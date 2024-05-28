@@ -13,6 +13,7 @@ class AMQPBusMixin final : public Base, public Service {
 public:
     AMQPBusMixin() = delete;
     AMQPBusMixin(const AMQPBusConfig& config) : 
+        Base(config.to_bus_config()),
         Service(false, false),
         config_{ config },
         connections_{ config.pool_size, config.url, get_context() }

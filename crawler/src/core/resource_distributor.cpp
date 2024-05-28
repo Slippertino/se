@@ -10,11 +10,17 @@ ResourceDistributor::ResourceDistributor(
 ) :
     Service(
         true, true, 
-        std::chrono::milliseconds(Config::from_service<size_t>("distributor", "interval_ms")), 
+        std::chrono::milliseconds(
+            se::utils::GlobalConfig<Config>::config.from_service<size_t>("distributor", "interval_ms")
+        ), 
         1ull
     ), 
-    group_size_          {  Config::from_service<size_t>("distributor", "domain_group_size") },
-    max_pages_batch_size_{  Config::from_service<size_t>("distributor", "max_pages_batch_size") },
+    group_size_          {  
+        se::utils::GlobalConfig<Config>::config.from_service<size_t>("distributor", "domain_group_size") 
+    },
+    max_pages_batch_size_{  
+        se::utils::GlobalConfig<Config>::config.from_service<size_t>("distributor", "max_pages_batch_size") 
+    },
     data_{ data },
     repository_{ repository },
     resolver_ { get_context() },
