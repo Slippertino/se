@@ -1,0 +1,135 @@
+body {
+    background-color: aliceblue;
+}
+
+.container {
+    max-width: 1000px;
+    margin: auto;
+}
+
+.searching-section {
+    margin: 0 auto;
+    width: 80%;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+.user-input__query {
+    width: 100%;
+    text-align: center;
+    font-size: 20px;
+    padding: 5px;
+    border-radius: 8px;
+}
+
+.user-input__icon {
+    background: url(../assets/magnifier.svg) no-repeat;
+    background-size: 30px;
+    width: 30px;
+    height: 30px;
+    border: none;
+    margin-left: 20px;
+    cursor: pointer;
+}
+
+.search-results {
+    margin-top: 50px;
+    font-family:'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-size: 20px;
+}
+
+.search-results__list {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 50px;
+    padding: 0px;
+    list-style-type: none;
+}
+
+.search-results__item {
+    width: 92%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    background-color: #bbebfa;
+    border-width: 2px;
+    border-style: solid;
+    border-color: blue;
+    border-radius: 15px;
+    padding: 0px 40px 0px 40px;
+}
+
+.item-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px 0px 20px;
+}
+
+.item-title {
+    text-wrap: wrap;
+    word-break: break-all;
+}
+
+.item-url {
+    text-wrap: wrap;
+    word-break: break-all;
+}
+
+.item-relevance {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: green;
+    font-weight: bold;
+    margin-left: 20px;
+}
+
+.item-relevance__img {
+    width: 60px;
+}
+
+.item-relevance__desc {
+    margin-top: 7px;
+}
+
+.pagination-wrapper {
+    display: flex;
+    flex-direction: row;
+    margin-top: 50px;
+}
+
+.page-buttons-container {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 2;
+    justify-content: space-around;
+    padding: 0px 200px 0px;
+}
+
+.page-button {
+    border: none;
+    border-radius: 30px;
+    padding: 25px;
+    cursor: pointer;
+    font-size: larger;
+    background-color: #20b2aa;
+}
+
+.page-list-switcher-prev {
+    display: none;
+    margin-left: 30px;
+    margin-right: auto;
+}
+
+.page-list-switcher-next {
+    display: none;
+    margin-left: auto;
+    margin-right: 30px;
+}

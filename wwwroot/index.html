@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Searcher</title>
+</head>
+<body>
+    <div class="container">
+        <main>
+            <img src="assets/logo.png" alt="Searcher">
+            <h1 class="main-title">Searcher</h1>
+            <div class="main-user-input">
+                <input 
+                    class="main-user-input__query" 
+                    type="search" 
+                    alt="Start searching" 
+                    placeholder="Your query..." 
+                    title="Query input"
+                    onkeypress="on_input_press()"
+                >
+                <input class="main-user-input__icon" type="button" onclick="on_query_input()">
+            </div> 
+        </main>
+    </div>
+    <script type="text/javascript">
+        function on_input_press(e) {
+            if (!e) 
+                e = window.event;
+            let keyCode = e.code || e.key;
+            if (keyCode == 'Enter')
+                on_query_input();
+        }
+        function on_query_input() {
+            let input = document.getElementsByClassName('main-user-input__query')[0].value;
+            localStorage.setItem('query', input);
+            console.log(input);
+            window.location.replace('./search/index.html');
+        }
+    </script>
+</body>
+</html>
