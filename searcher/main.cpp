@@ -3,6 +3,7 @@
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 #include <searcher/controllers/search_controller.hpp>
+#include <searcher/middlewares/cors_middleware.hpp>
 
 int main(int argc, char* argv[]) {
     const auto component_list =
@@ -11,6 +12,7 @@ int main(int argc, char* argv[]) {
         .Append<se::searcher::SearchQueriesCache>()
         .Append<se::searcher::ExternalBus>()
         .Append<se::searcher::Logger>()
+        .Append<userver::server::middlewares::SimpleHttpMiddlewareFactory<se::searcher::CORSMiddleware>>()
         .Append<userver::components::Postgres>("index-database")
         .Append<userver::components::TestsuiteSupport>()
         .Append<userver::components::Secdist>()

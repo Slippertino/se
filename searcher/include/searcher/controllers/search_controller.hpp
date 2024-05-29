@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include <userver/clients/dns/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/formats/json.hpp>
