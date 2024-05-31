@@ -7,23 +7,27 @@ var total_size;
 var current_size;
 var current_page;
 
-function handle_updated_query() {
-    if (!query)
-        query = localStorage.getItem('query');
-    else {
-        const cur_query = $('.user-input__query').first().val();
-        if (cur_query === query || !cur_query)
-            return;
-        localStorage.setItem('query', cur_query);
-        query = cur_query;
-    }
-    current_page = 1;
-    fetch_data(current_page, function(results) {
-        total_size = results.total_size;
-        current_size = results.size;
-        update_pagination();
-        render_results(results);
-    });
+function from_html(html, trim = true) {
+    html = trim ? html.trim() : html;
+    if (!html) 
+        return null;
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    const result = template.content.children;
+    return (result.length === 1) 
+        ? result[0] 
+        : result;
+}
+
+function cast_to_most_multiple(source, target) {
+    return (Math.floor(source / target) + (source % target > 0)) * target;
+}
+
+function create_relevance_caption(value) {
+    const percentage = Math.round(value * 100);
+    return (percentage === 0)
+        ? '> 1'
+        : `${percentage}`;
 }
 
 function fetch_data(page, callback) {
@@ -36,6 +40,14 @@ function fetch_data(page, callback) {
     .then(result => callback(result));
 }
 
+function set_page_button_focus(btn, focused) {
+    btn.css('background-color', focused ? '#1dc411' : '#20b2aa');
+}
+
+function show_page_move_button(btn, show) {
+    btn.css('visibility', show ? 'visible' : 'hidden');
+}
+
 function update_results() {
     fetch_data(current_page, function(results) {
         current_size = results.size;
@@ -46,40 +58,27 @@ function update_results() {
 function update_pagination() {
     let list = $('.page-buttons-container').first();
     list.empty();
-    const size = current_page * MAX_RESULTS_PER_PAGE_COUNT;
-    const prev_size = size - MAX_RESULTS_PER_PAGE_COUNT;
-    show_page_move_button($('.page-list-switcher-prev').first(), size > MAX_RESULTS_PER_PAGE_COUNT);
-    show_page_move_button($('.page-list-switcher-next').first(), size < total_size);
+    show_page_move_button(
+        $('.page-list-switcher-prev').first(), 
+        current_page > MAX_PAGES_LIST_SIZE
+    );
+    show_page_move_button(
+        $('.page-list-switcher-next').first(), 
+        cast_to_most_multiple(current_page, MAX_PAGES_LIST_SIZE) * MAX_RESULTS_PER_PAGE_COUNT < total_size
+    );
     if (!total_size)
         return;
-    const more_pages = 
-        Math.floor((total_size - prev_size) / MAX_RESULTS_PER_PAGE_COUNT) + 
-        ((total_size - prev_size) % MAX_RESULTS_PER_PAGE_COUNT > 0);
-    console.log(more_pages);
+    const size = (current_page - 1) * MAX_RESULTS_PER_PAGE_COUNT;
+    const more_pages = cast_to_most_multiple(total_size - size, MAX_RESULTS_PER_PAGE_COUNT) / MAX_RESULTS_PER_PAGE_COUNT;
     for(let i = 0; i < Math.min(more_pages, MAX_PAGES_LIST_SIZE); ++i) {
         let button = generate_page_button(current_page + i);
         button.addEventListener('click', function () {
-            const num = Number(button.textContent);
-            current_page = num;
-            $('.page-buttons-container > .page-button').each(function(ind, btn) {
-                set_page_button_focus($(btn), false);
-            });
-            set_page_button_focus($(button), true);
-            update_results();
-            window.scrollTo(0, 0);
+            handle_page_change(button);
         });
         list.append(button);
     }
     set_page_button_focus(list.children().first(), true);
     window.scrollTo(0, 0);
-}
-
-function set_page_button_focus(btn, focused) {
-    btn.css('background-color', focused ? '#1dc411' : '#20b2aa');
-}
-
-function show_page_move_button(btn, show) {
-    btn.css('display', show ? 'block' : 'none');
 }
 
 function render_results(results) {
@@ -114,37 +113,46 @@ function generate_one_result(data) {
     `);
 }
 
-function create_relevance_caption(value) {
-    const percentage = Math.round(value * 100);
-    return (percentage === 0)
-        ? '> 1'
-        : `${percentage}`;
+function handle_updated_query() {
+    let input = $('.user-input__query').first();
+    if (!query)
+        query = localStorage.getItem('query');
+    else {
+        const cur_query = input.val();
+        if (cur_query === query || !cur_query)
+            return;
+        localStorage.setItem('query', cur_query);
+        query = cur_query;
+    }
+    input.val(query);
+    current_page = 1;
+    fetch_data(current_page, function(results) {
+        total_size = results.total_size;
+        current_size = results.size;
+        update_pagination();
+        render_results(results);
+    });
 }
 
-function from_html(html, trim = true) {
-    html = trim ? html.trim() : html;
-    if (!html) 
-        return null;
-    const template = document.createElement('template');
-    template.innerHTML = html;
-    const result = template.content.children;
-    return (result.length === 1) 
-        ? result[0] 
-        : result;
+function handle_page_change(button) {
+    const num = Number(button.textContent);
+    current_page = num;
+    $('.page-buttons-container > .page-button').each(function(ind, btn) {
+        set_page_button_focus($(btn), false);
+    });
+    set_page_button_focus($(button), true);
+    update_results();
+    window.scrollTo(0, 0);
 }
 
 function handle_next() {
-    const remain = current_page % MAX_PAGES_LIST_SIZE;
-    const diff = (remain) ? (MAX_PAGES_LIST_SIZE - remain + 1) : 1;
-    current_page += diff;
+    current_page = cast_to_most_multiple(current_page, MAX_PAGES_LIST_SIZE) + 1;
     update_pagination();
     update_results();
 }
 
 function handle_previous() {
-    const remain = current_page % MAX_PAGES_LIST_SIZE;
-    const diff = (remain) ? remain + MAX_PAGES_LIST_SIZE - 1 : 2 * MAX_PAGES_LIST_SIZE - 1;
-    current_page -= diff;
+    current_page = cast_to_most_multiple(current_page, MAX_PAGES_LIST_SIZE) - 2 * MAX_PAGES_LIST_SIZE + 1;
     update_pagination();
     update_results();
 }
